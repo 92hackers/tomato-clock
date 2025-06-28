@@ -8,11 +8,11 @@
 
 本文档包含以下几个部分：
 
-1. [需求分析](./requirements.md) - 项目的需求拆解和用户故事
-2. [功能设计](./functional-design.md) - 详细的功能设计和交互流程
-3. [技术实现](./implementation.md) - 具体的技术实现方案和代码结构
-4. [UI设计](./ui-design.md) - 用户界面设计原则和实现
-5. [未来规划](./roadmap.md) - 项目的后续发展计划和功能扩展
+1. [需求分析](./docs/requirements.md) - 项目的需求拆解和用户故事
+2. [功能设计](./docs/functional-design.md) - 详细的功能设计和交互流程
+3. [技术实现](./docs/implementation.md) - 具体的技术实现方案和代码结构
+4. [UI设计](./docs/ui-design.md) - 用户界面设计原则和实现
+5. [未来规划](./docs/roadmap.md) - 项目的后续发展计划和功能扩展
 
 ## 项目概览
 
