@@ -391,226 +391,425 @@ interface LearningCurve {
 }
 ```
 
-## 3. 用户流程图
+## 3. Socket.IO 实时通信设计
 
-### 3.1 主要用户流程
+### 3.1 Socket.IO 连接管理
 
-```
-开始 -> 查看主界面 -> 选择操作:
-  |
-  ├─> 开始专注时间 -> 完成专注 -> 自动进入休息时间 -> 返回主界面
-  |
-  ├─> 添加新任务 -> 填写任务信息 -> 保存任务 -> 返回主界面
-  |
-  ├─> 查看统计数据 -> 浏览不同时间段的统计 -> 返回主界面
-  |
-  ├─> 修改设置 -> 调整参数 -> 保存设置 -> 返回主界面
-  |
-  ├─> 查看成就与提示 -> 浏览成就和技巧 -> 返回主界面
-  |
-  └─> 查看专注历程 -> 浏览进度和里程碑 -> 返回主界面
-```
+Socket.IO 提供了比原生 WebSocket 更强大的功能，包括自动重连、房间管理、事件命名空间等。
 
-### 3.2 专注计时流程
-
-```
-开始专注 -> 计时器开始倒计时 -> 用户操作:
-  |
-  ├─> 暂停计时 -> 计时器暂停 -> 用户操作:
-  |     |
-  |     ├─> 继续计时 -> 计时器继续
-  |     |
-  |     └─> 重置计时 -> 计时器重置
-  |
-  ├─> 完成计时 -> 发出提示 -> 记录完成的番茄 -> 自动进入休息时间
-  |
-  └─> 切换模式 -> 计时器重置为新模式时间
-```
-
-## 4. 界面布局
-
-应用采用类似Figma的画布式布局，各界面在画布上平铺展示，用户可以通过拖拽和缩放查看不同界面。各界面之间保持100px的间距，避免重叠。
-
-### 4.1 界面位置坐标
-
-| 界面名称 | 位置坐标 (top, left) |
-|---------|-------------------|
-| 主计时界面 | (100px, 100px) |
-| 设置界面 | (100px, 620px) |
-| 成就与提示界面 | (100px, 1140px) |
-| 统计界面 | (620px, 100px) |
-| 添加任务界面 | (620px, 620px) |
-| 专注历程界面 | (620px, 1140px) |
-
-### 4.2 界面尺寸
-
-所有界面的基础尺寸为350px宽，在桌面端可扩展至420px宽。高度根据内容自适应，但基本保持在500-600px之间。
-
-## 5. 交互设计
-
-### 5.1 拖拽与缩放
-
-- 用户可以按住画布并拖动来查看不同界面
-- 用户可以使用右下角的缩放控制按钮或鼠标滚轮来放大/缩小视图
-- 鼠标悬停在界面上时，界面会有轻微放大效果，提示可交互
-
-### 5.2 按钮反馈
-
-- 所有按钮点击时有明显的视觉反馈（如颜色变化或轻微缩放）
-- 开关控件（如通知开关）点击时会改变颜色并有滑动动画
-
-### 5.3 计时器交互
-
-- 计时器以大字体显示在圆形区域中央，确保可读性
-- 开始/暂停按钮根据状态变化图标（播放/暂停）
-- 重置按钮使用循环箭头图标，表示重新开始
-
-## 6. 响应式设计
-
-应用采用响应式设计，确保在不同设备上都有良好的使用体验：
-
-- 在桌面端，界面宽度为420px
-- 在移动端，界面宽度自适应屏幕，最小为350px
-- 所有交互元素（如按钮）都有足够大的点击区域，确保在触摸屏上易于操作
-- 字体大小和间距根据屏幕尺寸自动调整 
-
-## 2. 用户认证与授权设计
-
-### 2.1 认证流程设计
-
-#### 用户注册流程
-
-1. **输入基本信息**
-   - 用户名验证（唯一性、长度、格式）
-   - 邮箱验证（格式、唯一性）
-   - 密码强度验证
-   - 服务条款确认
-
-2. **邮箱验证**
-   - 发送验证邮件
-   - 用户点击验证链接
-   - 激活账户
-
-3. **初始设置**
-   - 时区设置
-   - 基础偏好配置
-   - 引导教程
-
-#### 用户登录流程
-
-1. **凭据验证**
-   - 邮箱/用户名 + 密码
-   - 输入验证和安全检查
-   - 限制登录尝试次数
-
-2. **令牌生成**
-   - 生成 JWT 访问令牌（15分钟有效期）
-   - 生成刷新令牌（30天有效期）
-   - 记录登录日志
-
-3. **会话管理**
-   - 在 Redis 中存储会话信息
-   - 支持多设备登录
-   - 异常登录检测
-
-#### 令牌刷新机制
+#### 连接建立和认证
 
 ```typescript
-interface AuthTokens {
-  access_token: string; // JWT，15分钟有效期
-  refresh_token: string; // 30天有效期
-  token_type: 'Bearer';
-  expires_in: number; // 秒数
-}
-
-interface JWTPayload {
-  sub: number; // user_id
-  username: string;
-  email: string;
-  iat: number; // issued at
-  exp: number; // expires at
-  jti: string; // JWT ID
-}
-```
-
-### 2.2 授权设计
-
-#### API 授权中间件
-
-```typescript
-// 权限级别定义
-enum PermissionLevel {
-  GUEST = 0,     // 游客，只能访问公开内容
-  USER = 1,      // 已认证用户，可以使用基本功能
-  PREMIUM = 2,   // 高级用户，可以使用高级功能
-  ADMIN = 99     // 管理员，拥有所有权限
-}
-
-// 资源权限验证
-interface ResourcePermission {
-  resource_type: 'timer' | 'task' | 'stats' | 'settings';
-  action: 'create' | 'read' | 'update' | 'delete';
-  required_level: PermissionLevel;
-  owner_only?: boolean; // 是否只允许资源所有者访问
-}
-```
-
-## 3. 实时通信设计
-
-### 3.1 WebSocket 连接管理
-
-#### 连接建立
-
-```typescript
-interface WebSocketConnection {
+// Socket.IO 连接接口
+interface SocketConnection {
+  socket_id: string;
   user_id: number;
-  connection_id: string;
+  session_id: string;
   connected_at: Date;
-  last_ping: Date;
+  last_activity: Date;
+  room: string; // user_{user_id}
   device_info: {
     user_agent: string;
     device_type: 'desktop' | 'mobile' | 'tablet';
     platform: string;
+    app_version: string;
   };
 }
 
-// WebSocket 消息类型
-type WebSocketMessage = 
-  | TimerUpdateMessage
-  | TaskUpdateMessage
-  | AchievementUnlockedMessage
-  | SystemNotificationMessage;
+// Socket.IO 事件类型定义
+interface ServerToClientEvents {
+  // 计时器相关事件
+  timer_update: (data: TimerUpdateData) => void;
+  timer_complete: (data: TimerCompleteData) => void;
+  timer_tick: (data: TimerTickData) => void;
+  
+  // 任务相关事件
+  task_created: (data: TaskCreatedData) => void;
+  task_updated: (data: TaskUpdatedData) => void;
+  task_deleted: (data: TaskDeletedData) => void;
+  
+  // 成就相关事件
+  achievement_unlocked: (data: AchievementData) => void;
+  achievement_progress: (data: AchievementProgressData) => void;
+  
+  // 系统通知事件
+  notification: (data: NotificationData) => void;
+  sync_complete: (data: SyncData) => void;
+  error: (data: SocketErrorData) => void;
+  
+  // 连接状态事件
+  user_joined: (data: UserJoinedData) => void;
+  user_left: (data: UserLeftData) => void;
+}
 
-interface TimerUpdateMessage {
-  type: 'timer_update';
-  data: {
-    session_id: number;
-    remaining_time: number;
-    status: 'running' | 'paused' | 'completed';
-    current_mode: 'focus' | 'short_break' | 'long_break';
-  };
-  timestamp: Date;
+interface ClientToServerEvents {
+  // 认证和房间管理
+  authenticate: (token: string, callback: (response: AuthResponse) => void) => void;
+  join_user_room: (userId: number) => void;
+  
+  // 计时器控制事件
+  timer_start: (data: TimerStartData, callback?: (response: TimerResponse) => void) => void;
+  timer_pause: (data: TimerPauseData) => void;
+  timer_resume: (data: TimerResumeData) => void;
+  timer_stop: (data: TimerStopData) => void;
+  timer_reset: (data: TimerResetData) => void;
+  
+  // 任务管理事件
+  task_create: (data: CreateTaskData, callback?: (response: TaskResponse) => void) => void;
+  task_update: (data: UpdateTaskData) => void;
+  task_delete: (data: DeleteTaskData) => void;
+  task_complete: (data: CompleteTaskData) => void;
+  
+  // 数据同步事件
+  request_sync: (lastSyncTime: Date) => void;
+  heartbeat: () => void;
+}
+
+// 计时器事件数据结构
+interface TimerUpdateData {
+  session_id: number;
+  user_id: number;
+  remaining_time: number;
+  elapsed_time: number;
+  status: 'running' | 'paused' | 'completed' | 'cancelled';
+  current_mode: 'focus' | 'short_break' | 'long_break';
+  task_id?: number;
+  pomodoro_count: number;
+  next_mode?: string;
+  auto_transition: boolean;
+}
+
+interface TimerCompleteData {
+  session_id: number;
+  user_id: number;
+  session_type: 'focus' | 'short_break' | 'long_break';
+  duration: number;
+  completed_at: Date;
+  task_id?: number;
+  pomodoro_count: number;
+  next_mode: string;
+  auto_start_next: boolean;
+  achievement_unlocked?: AchievementData[];
+}
+
+interface TimerTickData {
+  session_id: number;
+  remaining_time: number;
+  elapsed_time: number;
+  progress_percentage: number;
 }
 ```
 
-### 3.2 实时数据同步
+#### 房间管理策略
 
-#### 数据同步策略
+```typescript
+// Socket.IO 房间设计
+interface RoomStructure {
+  // 用户专属房间
+  user_rooms: {
+    [key: `user_${number}`]: {
+      user_id: number;
+      sockets: string[]; // 同一用户的多个连接
+      active_sessions: number[];
+      last_activity: Date;
+    };
+  };
+  
+  // 全局房间（可选）
+  global_rooms: {
+    'announcements': string[]; // 系统公告
+    'leaderboard': string[]; // 排行榜更新
+  };
+}
 
-1. **计时器状态同步**
-   - 每秒同步剩余时间
-   - 状态变更实时推送
-   - 跨设备状态一致性
+// 房间管理服务
+class SocketRoomManager {
+  joinUserRoom(socketId: string, userId: number): void;
+  leaveUserRoom(socketId: string, userId: number): void;
+  broadcastToUser(userId: number, event: string, data: any): void;
+  broadcastToRoom(room: string, event: string, data: any): void;
+  getUserConnections(userId: number): string[];
+  cleanupInactiveRooms(): void;
+}
+```
 
-2. **任务状态同步**
-   - 任务创建/更新实时推送
-   - 完成状态同步
-   - 优先级变更通知
+### 3.2 实时数据同步策略
 
-3. **成就解锁通知**
-   - 实时成就检测
-   - 推送解锁通知
-   - 成就进度更新
+#### 计时器实时同步
+
+```typescript
+// 计时器同步配置
+interface TimerSyncConfig {
+  // 同步频率
+  tick_interval: 1000; // 每秒更新一次
+  heartbeat_interval: 30000; // 30秒心跳检测
+  
+  // 同步策略
+  sync_strategies: {
+    server_authoritative: true; // 服务器时间为准
+    client_prediction: true; // 客户端预测减少延迟
+    reconciliation: true; // 时间差校正
+  };
+  
+  // 冲突解决
+  conflict_resolution: {
+    time_drift_threshold: 2000; // 2秒误差阈值
+    auto_correction: true; // 自动校正
+    user_notification: false; // 不通知用户小幅调整
+  };
+}
+
+// 计时器同步逻辑
+class TimerSyncManager {
+  // 服务器端时间校准
+  synchronizeServerTime(clientTime: number, serverTime: number): number {
+    const drift = serverTime - clientTime;
+    if (Math.abs(drift) > this.config.time_drift_threshold) {
+      return serverTime; // 使用服务器时间
+    }
+    return clientTime; // 保持客户端时间
+  }
+  
+  // 处理网络延迟
+  compensateNetworkLatency(timestamp: number, rtt: number): number {
+    return timestamp + (rtt / 2);
+  }
+  
+  // 状态一致性检查
+  validateTimerState(clientState: TimerState, serverState: TimerState): boolean {
+    return clientState.session_id === serverState.session_id &&
+           Math.abs(clientState.remaining_time - serverState.remaining_time) < 2000;
+  }
+}
+```
+
+#### 任务状态同步
+
+```typescript
+// 任务同步策略
+interface TaskSyncStrategy {
+  // 实时事件
+  real_time_events: {
+    task_created: boolean;
+    task_updated: boolean;
+    task_completed: boolean;
+    task_deleted: boolean;
+    priority_changed: boolean;
+  };
+  
+  // 批量同步
+  batch_sync: {
+    enabled: boolean;
+    interval: number; // 批量同步间隔
+    max_batch_size: number;
+  };
+  
+  // 冲突解决
+  conflict_resolution: {
+    strategy: 'last_write_wins' | 'timestamp_based' | 'user_choice';
+    merge_strategy: 'field_level' | 'object_level';
+  };
+}
+
+// 任务数据结构优化
+interface OptimizedTaskEvent {
+  event_id: string;
+  event_type: 'create' | 'update' | 'delete' | 'complete';
+  task_id: number;
+  user_id: number;
+  timestamp: Date;
+  
+  // 增量数据（仅包含变更字段）
+  delta: Partial<Task>;
+  
+  // 版本控制
+  version: number;
+  previous_version?: number;
+}
+```
+
+#### 离线和重连同步
+
+```typescript
+// 离线支持配置
+interface OfflineSyncConfig {
+  // 离线存储
+  offline_storage: {
+    enabled: boolean;
+    max_events: number; // 最大离线事件数
+    storage_type: 'indexeddb' | 'localstorage';
+  };
+  
+  // 重连策略
+  reconnection: {
+    auto_reconnect: boolean;
+    max_attempts: number;
+    backoff_strategy: 'exponential' | 'linear' | 'fixed';
+    initial_delay: number;
+    max_delay: number;
+  };
+  
+  // 数据恢复
+  data_recovery: {
+    full_sync_on_reconnect: boolean;
+    incremental_sync: boolean;
+    conflict_resolution: boolean;
+  };
+}
+
+// 离线事件管理
+class OfflineEventManager {
+  private offlineEvents: OfflineEvent[] = [];
+  
+  // 存储离线事件
+  storeOfflineEvent(event: SocketEvent): void {
+    const offlineEvent: OfflineEvent = {
+      id: generateId(),
+      event,
+      timestamp: new Date(),
+      retry_count: 0,
+      status: 'pending'
+    };
+    
+    this.offlineEvents.push(offlineEvent);
+    this.persistToStorage();
+  }
+  
+  // 重连后同步
+  async syncOfflineEvents(socket: Socket): Promise<void> {
+    const pendingEvents = this.offlineEvents
+      .filter(e => e.status === 'pending')
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    for (const offlineEvent of pendingEvents) {
+      try {
+        await this.replayEvent(socket, offlineEvent);
+        offlineEvent.status = 'synced';
+      } catch (error) {
+        offlineEvent.retry_count++;
+        if (offlineEvent.retry_count >= 3) {
+          offlineEvent.status = 'failed';
+        }
+      }
+    }
+    
+    this.persistToStorage();
+  }
+}
+```
+
+### 3.3 性能优化策略
+
+#### 事件节流和防抖
+
+```typescript
+// Socket.IO 事件优化
+class SocketEventOptimizer {
+  // 计时器更新节流（避免过于频繁的更新）
+  private throttledTimerUpdate = throttle((data: TimerUpdateData) => {
+    this.socket.emit('timer_update', data);
+  }, 1000);
+  
+  // 任务更新防抖（用户快速编辑时合并请求）
+  private debouncedTaskUpdate = debounce((data: UpdateTaskData) => {
+    this.socket.emit('task_update', data);
+  }, 500);
+  
+  // 批量事件处理
+  private eventQueue: SocketEvent[] = [];
+  private batchProcessor = setInterval(() => {
+    if (this.eventQueue.length > 0) {
+      this.processBatchEvents(this.eventQueue.splice(0));
+    }
+  }, 2000);
+}
+```
+
+#### 连接池管理
+
+```typescript
+// Socket.IO 连接池配置
+interface ConnectionPoolConfig {
+  max_connections_per_user: number; // 每用户最大连接数
+  connection_timeout: number; // 连接超时时间
+  idle_timeout: number; // 空闲连接超时
+  cleanup_interval: number; // 清理间隔
+}
+
+// 连接管理
+class SocketConnectionManager {
+  private userConnections = new Map<number, Set<string>>();
+  
+  addConnection(userId: number, socketId: string): void {
+    if (!this.userConnections.has(userId)) {
+      this.userConnections.set(userId, new Set());
+    }
+    
+    const connections = this.userConnections.get(userId)!;
+    
+    // 检查连接数限制
+    if (connections.size >= this.config.max_connections_per_user) {
+      this.closeOldestConnection(userId);
+    }
+    
+    connections.add(socketId);
+  }
+  
+  removeConnection(userId: number, socketId: string): void {
+    const connections = this.userConnections.get(userId);
+    if (connections) {
+      connections.delete(socketId);
+      if (connections.size === 0) {
+        this.userConnections.delete(userId);
+      }
+    }
+  }
+}
+```
+
+### 3.4 错误处理和监控
+
+```typescript
+// Socket.IO 错误处理
+interface SocketErrorHandler {
+  // 连接错误
+  onConnectionError(error: Error, socketId: string): void;
+  
+  // 认证错误
+  onAuthenticationError(error: AuthError, socketId: string): void;
+  
+  // 事件处理错误
+  onEventError(event: string, error: Error, data: any): void;
+  
+  // 房间操作错误
+  onRoomError(operation: string, room: string, error: Error): void;
+}
+
+// 监控指标
+interface SocketMetrics {
+  // 连接指标
+  active_connections: number;
+  connections_per_second: number;
+  average_connection_duration: number;
+  
+  // 事件指标
+  events_per_second: number;
+  event_processing_time: number;
+  failed_events: number;
+  
+  // 房间指标
+  active_rooms: number;
+  messages_per_room: number;
+  room_utilization: number;
+}
+```
+
+通过这套基于 Socket.IO 的实时通信设计，番茄时钟应用将具备：
+
+1. **可靠的实时通信**：自动重连、心跳检测、错误恢复
+2. **高效的数据同步**：增量更新、冲突解决、离线支持
+3. **优秀的用户体验**：低延迟、状态一致性、流畅交互
+4. **强大的扩展能力**：房间管理、事件命名空间、集群支持
 
 ## 4. 缓存策略设计
 

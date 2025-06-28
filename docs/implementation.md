@@ -77,17 +77,20 @@ frontend/
 │   │   ├── useTasks.ts       # 任务管理
 │   │   ├── useAuth.ts        # 身份认证
 │   │   ├── useLocalStorage.ts # 本地存储
-│   │   └── useWebSocket.ts   # WebSocket 连接
+│   │   ├── useSocket.ts      # Socket.IO 连接管理
+│   │   └── useRealtimeSync.ts # 实时数据同步
 │   │
 │   ├── store/                # 状态管理 (Zustand)
 │   │   ├── timerStore.ts     # 计时器状态
 │   │   ├── taskStore.ts      # 任务状态
 │   │   ├── authStore.ts      # 认证状态
+│   │   ├── socketStore.ts    # Socket.IO 连接状态
 │   │   └── settingsStore.ts  # 设置状态
 │   │
 │   ├── lib/                  # 工具库和配置
 │   │   ├── api.ts           # API 客户端
 │   │   ├── auth.ts          # 认证工具
+│   │   ├── socket.ts        # Socket.IO 客户端配置
 │   │   ├── utils.ts         # 通用工具函数
 │   │   ├── constants.ts     # 常量定义
 │   │   ├── validations.ts   # 表单验证
@@ -97,6 +100,7 @@ frontend/
 │       ├── timer.ts
 │       ├── task.ts
 │       ├── user.ts
+│       ├── socket.ts        # Socket.IO 事件类型定义
 │       ├── api.ts
 │       └── index.ts
 │
@@ -128,20 +132,23 @@ backend/
 │   │   ├── task.go        # 任务处理器
 │   │   ├── user.go        # 用户处理器
 │   │   ├── statistics.go  # 统计处理器
-│   │   └── achievement.go # 成就处理器
+│   │   ├── achievement.go # 成就处理器
+│   │   └── socket.go      # Socket.IO 处理器
 │   │
 │   ├── middleware/        # 中间件
 │   │   ├── auth.go        # JWT 认证中间件
 │   │   ├── cors.go        # CORS 中间件
 │   │   ├── logger.go      # 日志中间件
 │   │   ├── ratelimit.go   # 限流中间件
-│   │   └── recovery.go    # 恢复中间件
+│   │   ├── recovery.go    # 恢复中间件
+│   │   └── socket.go      # Socket.IO 认证中间件
 │   │
 │   ├── models/            # 数据模型
 │   │   ├── user.go        # 用户模型
 │   │   ├── task.go        # 任务模型
 │   │   ├── timer_session.go # 计时会话模型
 │   │   ├── achievement.go # 成就模型
+│   │   ├── socket_event.go # Socket.IO 事件模型
 │   │   └── base.go        # 基础模型
 │   │
 │   ├── services/          # 业务逻辑层
@@ -149,7 +156,14 @@ backend/
 │   │   ├── timer_service.go   # 计时器服务
 │   │   ├── task_service.go    # 任务服务
 │   │   ├── stats_service.go   # 统计服务
-│   │   └── achievement_service.go # 成就服务
+│   │   ├── achievement_service.go # 成就服务
+│   │   └── socket_service.go  # Socket.IO 服务
+│   │
+│   ├── socket/            # Socket.IO 相关代码
+│   │   ├── server.go      # Socket.IO 服务器配置
+│   │   ├── events.go      # 事件处理器
+│   │   ├── rooms.go       # 房间管理
+│   │   └── middleware.go  # Socket.IO 中间件
 │   │
 │   ├── repository/        # 数据访问层
 │   │   ├── user_repo.go   # 用户数据访问
@@ -161,6 +175,7 @@ backend/
 │   │   ├── config.go      # 配置结构
 │   │   ├── database.go    # 数据库配置
 │   │   ├── redis.go       # Redis 配置
+│   │   ├── socket.go      # Socket.IO 配置
 │   │   └── jwt.go         # JWT 配置
 │   │
 │   └── utils/             # 工具函数
@@ -406,23 +421,452 @@ PUT    /api/v1/settings          # 更新用户设置
 }
 ```
 
-### 4.3 WebSocket 实时通信
+### 4.3 Socket.IO 实时通信
 
-#### 连接端点
-```
-ws://localhost:8080/ws/{user_id}
+Socket.IO 提供了可靠的实时双向通信，支持自动重连、房间管理和事件驱动的消息传递。
+
+#### 前端 Socket.IO 配置
+
+```typescript
+// lib/socket.ts
+import { io, Socket } from 'socket.io-client';
+
+export interface ServerToClientEvents {
+  timer_update: (data: TimerUpdateData) => void;
+  timer_complete: (data: TimerCompleteData) => void;
+  task_update: (data: TaskUpdateData) => void;
+  achievement_unlocked: (data: AchievementData) => void;
+  user_joined: (data: UserJoinData) => void;
+  error: (data: ErrorData) => void;
+}
+
+export interface ClientToServerEvents {
+  join_user: (userId: string) => void;
+  timer_start: (data: TimerStartData) => void;
+  timer_pause: (data: TimerPauseData) => void;
+  timer_stop: (data: TimerStopData) => void;
+  task_create: (data: CreateTaskData) => void;
+  task_update: (data: UpdateTaskData) => void;
+}
+
+export interface TimerUpdateData {
+  sessionId: number;
+  remainingTime: number;
+  status: 'running' | 'paused' | 'completed';
+  currentMode: 'focus' | 'short_break' | 'long_break';
+  taskId?: number;
+}
+
+export interface TimerCompleteData {
+  sessionId: number;
+  sessionType: string;
+  completedAt: string;
+  nextMode: string;
+  pomodoroCount: number;
+}
+
+class SocketManager {
+  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+  private userId: string | null = null;
+
+  connect(token: string): Socket<ServerToClientEvents, ClientToServerEvents> {
+    if (this.socket?.connected) {
+      return this.socket;
+    }
+
+    this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080', {
+      auth: {
+        token,
+      },
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      timeout: 20000,
+    });
+
+    this.setupEventListeners();
+    return this.socket;
+  }
+
+  private setupEventListeners() {
+    if (!this.socket) return;
+
+    this.socket.on('connect', () => {
+      console.log('Socket.IO connected:', this.socket?.id);
+      if (this.userId) {
+        this.socket?.emit('join_user', this.userId);
+      }
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket.IO disconnected:', reason);
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', error);
+    });
+  }
+
+  joinUser(userId: string) {
+    this.userId = userId;
+    if (this.socket?.connected) {
+      this.socket.emit('join_user', userId);
+    }
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  getSocket() {
+    return this.socket;
+  }
+}
+
+export const socketManager = new SocketManager();
 ```
 
-#### 消息格式
-```json
-{
-  "type": "timer_update",
-  "data": {
-    "session_id": 123,
-    "remaining_time": 1200,
-    "status": "running"
-  },
-  "timestamp": "2024-01-01T00:00:00Z"
+#### 前端 Socket.IO Hook
+
+```typescript
+// hooks/useSocket.ts
+import { useEffect, useRef, useState } from 'react';
+import { Socket } from 'socket.io-client';
+import { socketManager, ServerToClientEvents, ClientToServerEvents } from '@/lib/socket';
+import { useAuthStore } from '@/store/authStore';
+
+export const useSocket = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastMessage, setLastMessage] = useState<any>(null);
+  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const { token, user } = useAuthStore();
+
+  useEffect(() => {
+    if (token && user) {
+      socketRef.current = socketManager.connect(token);
+      
+      const socket = socketRef.current;
+
+      socket.on('connect', () => {
+        setIsConnected(true);
+        socketManager.joinUser(user.id.toString());
+      });
+
+      socket.on('disconnect', () => {
+        setIsConnected(false);
+      });
+
+      // 监听所有事件
+      socket.on('timer_update', (data) => {
+        setLastMessage({ type: 'timer_update', data });
+      });
+
+      socket.on('timer_complete', (data) => {
+        setLastMessage({ type: 'timer_complete', data });
+      });
+
+      socket.on('task_update', (data) => {
+        setLastMessage({ type: 'task_update', data });
+      });
+
+      socket.on('achievement_unlocked', (data) => {
+        setLastMessage({ type: 'achievement_unlocked', data });
+      });
+
+      return () => {
+        socket.off('connect');
+        socket.off('disconnect');
+        socket.off('timer_update');
+        socket.off('timer_complete');
+        socket.off('task_update');
+        socket.off('achievement_unlocked');
+      };
+    }
+  }, [token, user]);
+
+  const emit = (event: keyof ClientToServerEvents, data: any) => {
+    if (socketRef.current?.connected) {
+      (socketRef.current as any).emit(event, data);
+    }
+  };
+
+  return {
+    socket: socketRef.current,
+    isConnected,
+    lastMessage,
+    emit,
+  };
+};
+```
+
+#### 后端 Socket.IO 服务器配置
+
+```go
+// internal/socket/server.go
+package socket
+
+import (
+    "log"
+    "net/http"
+    
+    socketio "github.com/googollee/go-socket.io"
+    "github.com/googollee/go-socket.io/engineio"
+    "github.com/googollee/go-socket.io/engineio/transport"
+    "github.com/googollee/go-socket.io/engineio/transport/polling"
+    "github.com/googollee/go-socket.io/engineio/transport/websocket"
+)
+
+type Server struct {
+    socketServer *socketio.Server
+    userRooms    map[string]string // socket.id -> user_id
+    roomUsers    map[string][]string // user_id -> []socket.id
+}
+
+func NewSocketServer() *Server {
+    server := &Server{
+        userRooms: make(map[string]string),
+        roomUsers: make(map[string][]string),
+    }
+
+    // 创建 Socket.IO 服务器
+    socketServer := socketio.NewServer(&engineio.Options{
+        Transports: []transport.Transport{
+            &polling.Transport{
+                CheckOrigin: func(r *http.Request) bool {
+                    return true // 生产环境需要严格检查
+                },
+            },
+            &websocket.Transport{
+                CheckOrigin: func(r *http.Request) bool {
+                    return true
+                },
+            },
+        },
+    })
+
+    server.socketServer = socketServer
+    server.setupEvents()
+    
+    return server
+}
+
+func (s *Server) setupEvents() {
+    // 连接事件
+    s.socketServer.OnConnect("/", func(conn socketio.Conn) error {
+        log.Printf("Socket connected: %s", conn.ID())
+        
+        // 验证认证令牌
+        token := conn.URL().Query().Get("token")
+        if token == "" {
+            log.Printf("No token provided for socket: %s", conn.ID())
+            return fmt.Errorf("authentication required")
+        }
+        
+        // 验证 JWT 令牌
+        userID, err := validateJWTToken(token)
+        if err != nil {
+            log.Printf("Invalid token for socket: %s", conn.ID())
+            return err
+        }
+        
+        // 存储用户连接映射
+        s.userRooms[conn.ID()] = userID
+        s.roomUsers[userID] = append(s.roomUsers[userID], conn.ID())
+        
+        return nil
+    })
+
+    // 断开连接事件
+    s.socketServer.OnDisconnect("/", func(conn socketio.Conn, reason string) {
+        log.Printf("Socket disconnected: %s, reason: %s", conn.ID(), reason)
+        
+        if userID, exists := s.userRooms[conn.ID()]; exists {
+            // 从房间中移除用户
+            s.removeUserConnection(userID, conn.ID())
+            delete(s.userRooms, conn.ID())
+        }
+    })
+
+    // 用户加入房间
+    s.socketServer.OnEvent("/", "join_user", func(conn socketio.Conn, userID string) {
+        log.Printf("User %s joined room via socket %s", userID, conn.ID())
+        
+        // 加入用户专属房间
+        conn.Join(fmt.Sprintf("user_%s", userID))
+        
+        // 通知其他用户
+        conn.Emit("user_joined", map[string]interface{}{
+            "userId":    userID,
+            "timestamp": time.Now(),
+        })
+    })
+
+    // 计时器事件
+    s.socketServer.OnEvent("/", "timer_start", func(conn socketio.Conn, data TimerStartData) {
+        userID := s.userRooms[conn.ID()]
+        log.Printf("Timer start event from user %s", userID)
+        
+        // 处理计时器开始逻辑
+        // 这里会调用计时器服务
+        
+        // 广播到用户房间
+        s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), "timer_update", map[string]interface{}{
+            "sessionId":     data.SessionID,
+            "status":        "running",
+            "remainingTime": data.Duration,
+            "currentMode":   data.Mode,
+            "taskId":        data.TaskID,
+        })
+    })
+
+    // 计时器暂停事件
+    s.socketServer.OnEvent("/", "timer_pause", func(conn socketio.Conn, data TimerPauseData) {
+        userID := s.userRooms[conn.ID()]
+        log.Printf("Timer pause event from user %s", userID)
+        
+        // 处理计时器暂停逻辑
+        
+        // 广播更新
+        s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), "timer_update", map[string]interface{}{
+            "sessionId":     data.SessionID,
+            "status":        "paused",
+            "remainingTime": data.RemainingTime,
+        })
+    })
+
+    // 任务创建事件
+    s.socketServer.OnEvent("/", "task_create", func(conn socketio.Conn, data CreateTaskData) {
+        userID := s.userRooms[conn.ID()]
+        log.Printf("Task create event from user %s", userID)
+        
+        // 处理任务创建逻辑
+        
+        // 广播到用户房间
+        s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), "task_update", map[string]interface{}{
+            "action": "created",
+            "task":   data,
+        })
+    })
+
+    // 错误处理
+    s.socketServer.OnError("/", func(conn socketio.Conn, err error) {
+        log.Printf("Socket error for %s: %v", conn.ID(), err)
+    })
+}
+
+func (s *Server) removeUserConnection(userID, socketID string) {
+    if connections, exists := s.roomUsers[userID]; exists {
+        for i, id := range connections {
+            if id == socketID {
+                s.roomUsers[userID] = append(connections[:i], connections[i+1:]...)
+                break
+            }
+        }
+        
+        // 如果用户没有其他连接，清理房间
+        if len(s.roomUsers[userID]) == 0 {
+            delete(s.roomUsers, userID)
+        }
+    }
+}
+
+// 广播给特定用户
+func (s *Server) BroadcastToUser(userID string, event string, data interface{}) {
+    s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), event, data)
+}
+
+// 获取 Socket.IO 服务器实例
+func (s *Server) GetServer() *socketio.Server {
+    return s.socketServer
+}
+```
+
+#### Socket.IO 事件类型定义
+
+```go
+// internal/models/socket_event.go
+package models
+
+import "time"
+
+type TimerStartData struct {
+    SessionID int    `json:"session_id"`
+    Duration  int    `json:"duration"`
+    Mode      string `json:"mode"`
+    TaskID    *int   `json:"task_id,omitempty"`
+}
+
+type TimerPauseData struct {
+    SessionID     int `json:"session_id"`
+    RemainingTime int `json:"remaining_time"`
+}
+
+type TimerStopData struct {
+    SessionID int `json:"session_id"`
+}
+
+type CreateTaskData struct {
+    Title              string    `json:"title"`
+    Description        string    `json:"description,omitempty"`
+    EstimatedPomodoros int       `json:"estimated_pomodoros"`
+    Priority           int       `json:"priority"`
+    Tags               []string  `json:"tags,omitempty"`
+    DueDate            *time.Time `json:"due_date,omitempty"`
+}
+
+type UpdateTaskData struct {
+    ID                 int       `json:"id"`
+    Title              *string   `json:"title,omitempty"`
+    Description        *string   `json:"description,omitempty"`
+    EstimatedPomodoros *int      `json:"estimated_pomodoros,omitempty"`
+    CompletedPomodoros *int      `json:"completed_pomodoros,omitempty"`
+    Status             *string   `json:"status,omitempty"`
+    Priority           *int      `json:"priority,omitempty"`
+    Tags               []string  `json:"tags,omitempty"`
+    DueDate            *time.Time `json:"due_date,omitempty"`
+}
+
+type AchievementUnlockedData struct {
+    AchievementID int       `json:"achievement_id"`
+    Name          string    `json:"name"`
+    Description   string    `json:"description"`
+    Icon          string    `json:"icon"`
+    UnlockedAt    time.Time `json:"unlocked_at"`
+}
+```
+
+#### Gin 路由集成
+
+```go
+// cmd/server/main.go
+package main
+
+import (
+    "log"
+    "net/http"
+    
+    "github.com/gin-gonic/gin"
+    "your-project/internal/socket"
+)
+
+func main() {
+    r := gin.Default()
+    
+    // 创建 Socket.IO 服务器
+    socketServer := socket.NewSocketServer()
+    
+    // Socket.IO 路由
+    r.GET("/socket.io/", gin.WrapH(socketServer.GetServer()))
+    r.POST("/socket.io/", gin.WrapH(socketServer.GetServer()))
+    
+    // 其他 API 路由...
+    
+    log.Println("Server starting on :8080")
+    log.Fatal(http.ListenAndServe(":8080", r))
 }
 ```
 
