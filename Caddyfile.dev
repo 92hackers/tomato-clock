@@ -1,0 +1,119 @@
+# Caddyfile.dev - 开发环境配置
+# 用于本地开发环境的 Caddy 配置文件
+
+{
+    # 开发环境全局配置
+    auto_https off          # 禁用自动 HTTPS
+    local_certs             # 使用本地证书（如果需要 HTTPS）
+    admin localhost:2019    # Caddy 管理接口
+}
+
+# 本地开发主端口 (HTTP)
+localhost {
+    # 启用响应压缩
+    encode gzip
+
+    # 开发环境安全头部（简化版）
+    header {
+        # 允许开发工具访问
+        X-Frame-Options "SAMEORIGIN"
+        # 基础 XSS 保护
+        X-XSS-Protection "1; mode=block"
+        # 允许内联脚本（开发时需要）
+        Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https:;"
+        
+        # 隐藏服务器信息
+        -Server
+    }
+
+    # API 路由 - 代理到后端服务
+    handle /api/* {
+        reverse_proxy backend:8080 {
+            # 传递基础头部信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+        }
+    }
+
+    # WebSocket 连接 - 代理到后端服务
+    handle /ws/* {
+        reverse_proxy backend:8080 {
+            # WebSocket 升级头部
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+            header_up Sec-WebSocket-Key {>Sec-WebSocket-Key}
+            header_up Sec-WebSocket-Version {>Sec-WebSocket-Version}
+            header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+            header_up Sec-WebSocket-Extensions {>Sec-WebSocket-Extensions}
+            
+            # 传递基础头部信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 前端应用 - 代理到 Next.js 服务
+    handle {
+        reverse_proxy frontend:3000 {
+            # 传递基础头部信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+        }
+    }
+
+    # 开发环境日志（输出到控制台）
+    log {
+        output stdout
+        format console
+        level DEBUG
+    }
+}
+
+# 备用开发端口 (用于测试)
+localhost:8000 {
+    # API 路由
+    handle /api/* {
+        reverse_proxy localhost:8080
+    }
+    
+    # WebSocket 连接
+    handle /ws/* {
+        reverse_proxy localhost:8080
+    }
+    
+    # 前端应用
+    handle {
+        reverse_proxy localhost:3000
+    }
+    
+    # 简单日志
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
+
+# 直接访问服务端口（调试用）
+localhost:3001 {
+    reverse_proxy frontend:3000
+    log {
+        output stdout
+        format console
+        level DEBUG
+    }
+}
+
+localhost:8001 {
+    reverse_proxy backend:8080
+    log {
+        output stdout
+        format console
+        level DEBUG
+    }
+} 

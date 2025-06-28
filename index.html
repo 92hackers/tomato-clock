@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>专注时钟 - 设计画布</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      overflow: hidden;
+      height: 100vh;
+      cursor: grab;
+    }
+    
+    body:active {
+      cursor: grabbing;
+    }
+
+    .canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      min-width: 100%;
+      min-height: 100%;
+    }
+    
+    .screen {
+      position: absolute;
+      background-color: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      width: 350px;
+      padding: 30px;
+      transition: transform 0.2s;
+    }
+    
+    .screen:hover {
+      transform: scale(1.02);
+    }
+    
+    .screen-label {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      color: #666;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    /* Main Timer Screen */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .settings {
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #888;
+    }
+    
+    .timer-circle {
+      width: 200px;
+      height: 200px;
+      background-color: #f0f0f0;
+      border-radius: 50%;
+      margin: 0 auto 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .timer {
+      font-size: 46px;
+      font-weight: 600;
+    }
+    
+    .buttons-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+      gap: 12px;
+    }
+    
+    .tab-button {
+      padding: 10px 0;
+      flex: 1;
+      text-align: center;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .tab-button.active {
+      background-color: #007aff;
+      color: white;
+    }
+    
+    .tab-button:not(.active) {
+      background-color: #f0f0f0;
+      color: #555;
+    }
+    
+    .control-buttons {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+      gap: 20px;
+    }
+    
+    .control-button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .play-button {
+      background-color: #007aff;
+      color: white;
+      font-size: 28px;
+    }
+    
+    .reset-button {
+      background-color: #f0f0f0;
+      color: #555;
+      font-size: 22px;
+    }
+    
+    .section-title {
+      text-align: left;
+      font-size: 18px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .add-button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .task-list {
+      list-style: none;
+      margin-bottom: 25px;
+    }
+    
+    .task-item {
+      background-color: #f0f0f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+    }
+    
+    .task-checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #999;
+      display: inline-block;
+      margin-right: 12px;
+      vertical-align: middle;
+    }
+    
+    .task-text {
+      flex: 1;
+      font-size: 16px;
+    }
+    
+    .task-count {
+      color: #999;
+      font-size: 16px;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+    }
+    
+    .stat-box {
+      background-color: #f0f0f0;
+      flex: 1;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 0 6px;
+    }
+    
+    .stat-number {
+      font-size: 26px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #888;
+    }
+    
+    /* Settings Screen */
+    .back-button {
+      margin-right: 10px;
+      font-size: 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .setting-group {
+      margin-bottom: 30px;
+    }
+    
+    .setting-item {
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 50px;
+      height: 28px;
+      border-radius: 14px;
+      background-color: #ddd;
+      cursor: pointer;
+    }
+    
+    .toggle.active {
+      background-color: #007aff;
+    }
+    
+    .toggle-handle {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: white;
+      transition: transform 0.2s;
+    }
+    
+    .toggle.active .toggle-handle {
+      transform: translateX(22px);
+    }
+    
+    .setting-label {
+      font-size: 16px;
+    }
+    
+    .setting-value {
+      color: #999;
+      font-size: 16px;
+    }
+    
+    /* Stats Screen */
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
+    .date-selector {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .date-button {
+      padding: 8px 15px;
+      border-radius: 10px;
+      border: none;
+      background-color: #f0f0f0;
+      color: #555;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    
+    .date-button.active {
+      background-color: #007aff;
+      color: white;
+    }
+    
+    .chart {
+      height: 200px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-top: 20px;
+    }
+    
+    .chart-bar {
+      width: 30px;
+      background-color: #007aff;
+      border-radius: 5px 5px 0 0;
+      position: relative;
+    }
+    
+    .chart-label {
+      position: absolute;
+      bottom: -25px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+    }
+    
+    .chart-value {
+      position: absolute;
+      top: -25px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+    }
+    
+    /* Task Add Screen */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .input-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: #555;
+    }
+    
+    .text-input {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      font-family: inherit;
+    }
+    
+    .number-input {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .number-button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background-color: #f0f0f0;
+      color: #555;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .number-value {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .submit-button {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      background-color: #007aff;
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    /* Zoom controls */
+    .zoom-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    
+    .zoom-button {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: white;
+      border: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    
+    .zoom-button:hover {
+      transform: scale(1.1);
+      background-color: #f8f8f8;
+    }
+    
+    .zoom-button:active {
+      transform: scale(0.95);
+    }
+    
+    /* Grid guide for better alignment */
+    .grid-guide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.1;
+      z-index: -1;
+    }
+    
+    /* Achievements & Tips Screen */
+    .achievement-item {
+      display: flex;
+      align-items: center;
+      background-color: #f0f0f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+    }
+    
+    .achievement-icon {
+      width: 40px;
+      height: 40px;
+      background-color: #007aff;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+    
+    .achievement-info {
+      flex: 1;
+    }
+    
+    .achievement-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .achievement-desc {
+      font-size: 14px;
+      color: #777;
+    }
+    
+    .achievement-locked {
+      opacity: 0.5;
+    }
+    
+    .tip-card {
+      background-color: #f0f0f0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 15px;
+    }
+    
+    .tip-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .tip-icon {
+      color: #007aff;
+      font-size: 18px;
+      margin-right: 8px;
+    }
+    
+    .tip-content {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #555;
+    }
+    
+    @media (min-width: 768px) {
+      .screen {
+        width: 420px;
+      }
+    }
+    
+    /* Focus Journey Screen */
+    .journey-timeline {
+      position: relative;
+      margin: 30px 0;
+      padding-left: 25px;
+    }
+    
+    .timeline-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 10px;
+      width: 2px;
+      background-color: #ddd;
+    }
+    
+    .journey-item {
+      position: relative;
+      margin-bottom: 25px;
+    }
+    
+    .journey-dot {
+      position: absolute;
+      left: -25px;
+      top: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #007aff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 12px;
+    }
+    
+    .journey-date {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 5px;
+    }
+    
+    .journey-content {
+      background-color: #f0f0f0;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    
+    .journey-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .journey-desc {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .progress-section {
+      margin-bottom: 25px;
+    }
+    
+    .progress-title {
+      font-size: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .progress-info {
+      color: #999;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    
+    .progress-bar {
+      height: 10px;
+      background-color: #eee;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background-color: #007aff;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas" id="canvas">
+    <!-- Grid guide for alignment -->
+    <svg class="grid-guide" width="3000" height="2000">
+      <defs>
+        <pattern id="smallGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+          <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ccc" stroke-width="0.5"/>
+        </pattern>
+        <pattern id="grid" width="200" height="200" patternUnits="userSpaceOnUse">
+          <rect width="200" height="200" fill="url(#smallGrid)"/>
+          <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#666" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)" />
+    </svg>
+    
+    <!-- Main Timer Screen -->
+    <div class="screen" style="top: 100px; left: 100px;">
+      <div class="screen-label">主计时界面</div>
+      <div class="header">
+        <div class="title">专注时钟</div>
+        <button class="settings">⚙️</button>
+      </div>
+      
+      <div class="timer-circle">
+        <div class="timer" id="timer">25:00</div>
+      </div>
+      
+      <div class="buttons-row">
+        <button class="tab-button active">专注</button>
+        <button class="tab-button">短休息</button>
+        <button class="tab-button">长休息</button>
+      </div>
+      
+      <div class="control-buttons">
+        <button class="control-button play-button" id="start">▶</button>
+        <button class="control-button reset-button" id="reset">↻</button>
+      </div>
+      
+      <div class="section-title">
+        今日任务
+        <button class="add-button">+</button>
+      </div>
+      
+      <ul class="task-list" id="tasks">
+        <li class="task-item">
+          <div>
+            <span class="task-checkbox"></span>
+            <span class="task-text">完成番茄时钟设计</span>
+          </div>
+          <span class="task-count">2/4</span>
+        </li>
+        <li class="task-item">
+          <div>
+            <span class="task-checkbox"></span>
+            <span class="task-text">阅读一章书</span>
+          </div>
+          <span class="task-count">0/2</span>
+        </li>
+      </ul>
+      
+      <div class="section-title">今日统计</div>
+      
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number">2</div>
+          <div class="stat-label">完成番茄</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">50</div>
+          <div class="stat-label">专注分钟</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">1</div>
+          <div class="stat-label">完成任务</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Settings Screen -->
+    <div class="screen" style="top: 100px; left: 620px;">
+      <div class="screen-label">设置界面</div>
+      <div class="header">
+        <div style="display: flex; align-items: center;">
+          <button class="back-button">←</button>
+          <div class="title">设置</div>
+        </div>
+      </div>
+      
+      <div class="setting-group">
+        <div class="section-title">时间设置</div>
+        <div class="setting-item">
+          <span class="setting-label">专注时长</span>
+          <span class="setting-value">25分钟</span>
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">短休息时长</span>
+          <span class="setting-value">5分钟</span>
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">长休息时长</span>
+          <span class="setting-value">15分钟</span>
+        </div>
+      </div>
+      
+      <div class="setting-group">
+        <div class="section-title">通知</div>
+        <div class="setting-item">
+          <span class="setting-label">时间结束提醒</span>
+          <div class="toggle active">
+            <div class="toggle-handle"></div>
+          </div>
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">休息提醒</span>
+          <div class="toggle">
+            <div class="toggle-handle"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="setting-group">
+        <div class="section-title">主题</div>
+        <div class="setting-item">
+          <span class="setting-label">深色模式</span>
+          <div class="toggle">
+            <div class="toggle-handle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Achievements & Tips Screen -->
+    <div class="screen" style="top: 100px; left: 1140px;">
+      <div class="screen-label">成就与提示界面</div>
+      <div class="header">
+        <div style="display: flex; align-items: center;">
+          <button class="back-button">←</button>
+          <div class="title">成就与提示</div>
+        </div>
+      </div>
+      
+      <div class="section-title">我的成就</div>
+      
+      <div class="achievement-item">
+        <div class="achievement-icon">🔥</div>
+        <div class="achievement-info">
+          <div class="achievement-title">专注达人</div>
+          <div class="achievement-desc">连续完成7天专注任务</div>
+        </div>
+      </div>
+      
+      <div class="achievement-item">
+        <div class="achievement-icon">⏱️</div>
+        <div class="achievement-info">
+          <div class="achievement-title">时间管理者</div>
+          <div class="achievement-desc">累计专注时间超过24小时</div>
+        </div>
+      </div>
+      
+      <div class="achievement-item achievement-locked">
+        <div class="achievement-icon">🌟</div>
+        <div class="achievement-info">
+          <div class="achievement-title">番茄收集者</div>
+          <div class="achievement-desc">完成100个番茄钟</div>
+        </div>
+      </div>
+      
+      <div class="section-title" style="margin-top: 20px;">专注小技巧</div>
+      
+      <div class="tip-card">
+        <div class="tip-title">
+          <span class="tip-icon">💡</span>
+          <span>准备一个专注空间</span>
+        </div>
+        <div class="tip-content">
+          为自己创建一个安静、整洁的工作环境，减少干扰因素，有助于提高专注力。
+        </div>
+      </div>
+      
+      <div class="tip-card">
+        <div class="tip-title">
+          <span class="tip-icon">💡</span>
+          <span>使用2分钟规则</span>
+        </div>
+        <div class="tip-content">
+          如果一项任务可以在2分钟内完成，立即完成它，不要推迟。这有助于清空头脑，专注更重要的任务。
+        </div>
+      </div>
+    </div>
+    
+    <!-- Statistics Screen -->
+    <div class="screen" style="top: 1020px; left: 100px;">
+      <div class="screen-label">统计界面</div>
+      <div class="header">
+        <div style="display: flex; align-items: center;">
+          <button class="back-button">←</button>
+          <div class="title">统计</div>
+        </div>
+      </div>
+      
+      <div class="stats-header">
+        <div class="section-title">专注记录</div>
+        <div class="date-selector">
+          <button class="date-button">周</button>
+          <button class="date-button active">月</button>
+          <button class="date-button">年</button>
+        </div>
+      </div>
+      
+      <div class="chart">
+        <div class="chart-bar" style="height: 120px;">
+          <div class="chart-value">6</div>
+          <div class="chart-label">周一</div>
+        </div>
+        <div class="chart-bar" style="height: 80px;">
+          <div class="chart-value">4</div>
+          <div class="chart-label">周二</div>
+        </div>
+        <div class="chart-bar" style="height: 160px;">
+          <div class="chart-value">8</div>
+          <div class="chart-label">周三</div>
+        </div>
+        <div class="chart-bar" style="height: 100px;">
+          <div class="chart-value">5</div>
+          <div class="chart-label">周四</div>
+        </div>
+        <div class="chart-bar" style="height: 140px;">
+          <div class="chart-value">7</div>
+          <div class="chart-label">周五</div>
+        </div>
+        <div class="chart-bar" style="height: 40px;">
+          <div class="chart-value">2</div>
+          <div class="chart-label">周六</div>
+        </div>
+        <div class="chart-bar" style="height: 60px;">
+          <div class="chart-value">3</div>
+          <div class="chart-label">周日</div>
+        </div>
+      </div>
+      
+      <div class="section-title">本周统计</div>
+      
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number">35</div>
+          <div class="stat-label">完成番茄</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">875</div>
+          <div class="stat-label">专注分钟</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">12</div>
+          <div class="stat-label">完成任务</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Task Add Screen -->
+    <div class="screen" style="top: 820px; left: 620px;">
+      <div class="screen-label">添加任务界面</div>
+      <div class="header">
+        <div style="display: flex; align-items: center;">
+          <button class="back-button">←</button>
+          <div class="title">添加任务</div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="input-label">任务名称</label>
+        <input type="text" class="text-input" placeholder="输入任务名称">
+      </div>
+      
+      <div class="form-group">
+        <label class="input-label">预计番茄数</label>
+        <div class="number-input">
+          <button class="number-button">-</button>
+          <div class="number-value">4</div>
+          <button class="number-button">+</button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="input-label">备注</label>
+        <input type="text" class="text-input" placeholder="添加备注（可选）">
+      </div>
+      
+      <button class="submit-button">保存</button>
+    </div>
+    
+    <!-- Focus Journey Screen -->
+    <div class="screen" style="top: 920px; left: 1140px;">
+      <div class="screen-label">专注历程界面</div>
+      <div class="header">
+        <div style="display: flex; align-items: center;">
+          <button class="back-button">←</button>
+          <div class="title">专注历程</div>
+        </div>
+      </div>
+      
+      <div class="section-title">学习曲线</div>
+      
+      <div class="progress-section">
+        <div class="progress-title">
+          专注能力 <span class="progress-info">72/100</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 72%"></div>
+        </div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-title">
+          持续性 <span class="progress-info">85/100</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 85%"></div>
+        </div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-title">
+          效率提升 <span class="progress-info">60/100</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 60%"></div>
+        </div>
+      </div>
+      
+      <div class="section-title">历程记录</div>
+      
+      <div class="journey-timeline">
+        <div class="timeline-line"></div>
+        
+        <div class="journey-item">
+          <div class="journey-dot">1</div>
+          <div class="journey-date">2023年11月01日</div>
+          <div class="journey-content">
+            <div class="journey-title">开始使用番茄时钟</div>
+            <div class="journey-desc">首次完成3个番茄钟任务，开始专注之旅。</div>
+          </div>
+        </div>
+        
+        <div class="journey-item">
+          <div class="journey-dot">2</div>
+          <div class="journey-date">2023年11月15日</div>
+          <div class="journey-content">
+            <div class="journey-title">第一个里程碑</div>
+            <div class="journey-desc">累计完成50个番茄钟，专注时间超过20小时。</div>
+          </div>
+        </div>
+        
+        <div class="journey-item">
+          <div class="journey-dot">3</div>
+          <div class="journey-date">2023年12月05日</div>
+          <div class="journey-content">
+            <div class="journey-title">养成习惯</div>
+            <div class="journey-desc">连续21天使用番茄工作法，效率提升明显。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="zoom-controls">
+    <button class="zoom-button" id="zoom-in" title="放大">+</button>
+    <button class="zoom-button" id="zoom-out" title="缩小">−</button>
+    <button class="zoom-button" id="zoom-reset" title="重置视图">⟲</button>
+  </div>
+
+  <script>
+    // Timer functionality
+    const timer = document.getElementById('timer');
+    const startBtn = document.getElementById('start');
+    const resetBtn = document.getElementById('reset');
+    const taskList = document.getElementById('tasks');
+
+    let countdown;
+    let timeLeft = 1500; // 25 minutes in seconds
+    let isRunning = false;
+
+    function formatTime(time) {
+      let minutes = Math.floor(time / 60);
+      let seconds = time % 60;
+      seconds = seconds < 10 ? '0' + seconds : seconds;
+      return `${minutes}:${seconds}`;
+    }
+
+    function updateTimer() {
+      timer.textContent = formatTime(timeLeft);
+      if (timeLeft === 0) {
+        stopTimer();
+        alert('时间到！');
+      } else {
+        timeLeft--;
+      }
+    }
+
+    function startTimer() {
+      if (!isRunning) {
+        countdown = setInterval(updateTimer, 1000);
+        startBtn.textContent = "⏸";
+        isRunning = true;
+      } else {
+        clearInterval(countdown);
+        startBtn.textContent = "▶";
+        isRunning = false;
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(countdown);
+      timeLeft = 1500;
+      updateTimer();
+      startBtn.textContent = "▶";
+      isRunning = false;
+    }
+
+    startBtn.addEventListener('click', startTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    
+    // Initialize
+    updateTimer();
+    
+    // Tab switching
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        if (button.textContent === '专注') {
+          resetTimer();
+          timeLeft = 1500; // 25 minutes
+        } else if (button.textContent === '短休息') {
+          resetTimer();
+          timeLeft = 300; // 5 minutes
+        } else if (button.textContent === '长休息') {
+          resetTimer();
+          timeLeft = 900; // 15 minutes
+        }
+        
+        updateTimer();
+      });
+    });
+    
+    // Canvas drag functionality
+    const canvas = document.getElementById('canvas');
+    let isDragging = false;
+    let startPos = { x: 0, y: 0 };
+    let currentPos = { x: 0, y: 0 };
+    let scale = 1;
+    
+    // Center the canvas initially
+    function centerCanvas() {
+      // Center the view on the middle of our UI arrangement (around 2700px, 2700px)
+      currentPos.x = window.innerWidth/2 - 2700;
+      currentPos.y = window.innerHeight/2 - 2700;
+      scale = 1;
+      updateCanvasPosition();
+    }
+
+    function updateCanvasPosition() {
+      canvas.style.transform = `translate(${currentPos.x}px, ${currentPos.y}px) scale(${scale})`;
+    }
+    
+    // Mouse events for dragging
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startPos.x = e.clientX - currentPos.x;
+      startPos.y = e.clientY - currentPos.y;
+      canvas.style.cursor = 'grabbing';
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      currentPos.x = e.clientX - startPos.x;
+      currentPos.y = e.clientY - startPos.y;
+      updateCanvasPosition();
+    });
+    
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+    });
+    
+    // Add mouse wheel zoom functionality
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      
+      // Get mouse position relative to page
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      
+      // Save old scale and calculate new scale
+      const oldScale = scale;
+      const delta = e.deltaY > 0 ? -0.1 : 0.1; // Zoom in/out based on wheel direction
+      scale = Math.max(0.5, Math.min(2, scale + delta)); // Limit zoom between 0.5x and 2x
+      
+      // Calculate zoom point (mouse position relative to canvas origin)
+      const zoomPointX = (mouseX - currentPos.x) / oldScale;
+      const zoomPointY = (mouseY - currentPos.y) / oldScale;
+      
+      // Adjust position to zoom toward mouse point
+      currentPos.x = mouseX - zoomPointX * scale;
+      currentPos.y = mouseY - zoomPointY * scale;
+      
+      updateCanvasPosition();
+    });
+    
+    // Zoom functionality
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomReset = document.getElementById('zoom-reset');
+    
+    zoomIn.addEventListener('click', () => {
+      // Save old scale
+      const oldScale = scale;
+      scale = Math.min(scale + 0.1, 2);
+      
+      if (oldScale !== scale) {
+        // Zoom toward center of viewport
+        const viewportCenterX = window.innerWidth / 2;
+        const viewportCenterY = window.innerHeight / 2;
+        
+        // Calculate zoom point (viewport center relative to canvas origin)
+        const zoomPointX = (viewportCenterX - currentPos.x) / oldScale;
+        const zoomPointY = (viewportCenterY - currentPos.y) / oldScale;
+        
+        // Adjust position to zoom toward viewport center
+        currentPos.x = viewportCenterX - zoomPointX * scale;
+        currentPos.y = viewportCenterY - zoomPointY * scale;
+      }
+      
+      updateCanvasPosition();
+    });
+    
+    zoomOut.addEventListener('click', () => {
+      // Save old scale
+      const oldScale = scale;
+      scale = Math.max(scale - 0.1, 0.5);
+      
+      if (oldScale !== scale) {
+        // Zoom toward center of viewport
+        const viewportCenterX = window.innerWidth / 2;
+        const viewportCenterY = window.innerHeight / 2;
+        
+        // Calculate zoom point (viewport center relative to canvas origin)
+        const zoomPointX = (viewportCenterX - currentPos.x) / oldScale;
+        const zoomPointY = (viewportCenterY - currentPos.y) / oldScale;
+        
+        // Adjust position to zoom toward viewport center
+        currentPos.x = viewportCenterX - zoomPointX * scale;
+        currentPos.y = viewportCenterY - zoomPointY * scale;
+      }
+      
+      updateCanvasPosition();
+    });
+    
+    zoomReset.addEventListener('click', () => {
+      scale = 1;
+      centerCanvas();
+    });
+    
+    // Toggle switches
+    const toggles = document.querySelectorAll('.toggle');
+    toggles.forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+      });
+    });
+    
+    // Number input controls
+    const numberButtons = document.querySelectorAll('.number-button');
+    numberButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const numValue = button.parentElement.querySelector('.number-value');
+        let value = parseInt(numValue.textContent);
+        
+        if (button.textContent === '+') {
+          value = Math.min(value + 1, 10);
+        } else {
+          value = Math.max(value - 1, 1);
+        }
+        
+        numValue.textContent = value;
+      });
+    });
+    
+    // Initialize the canvas position
+    centerCanvas();
+  </script>
+</body>
+</html> 

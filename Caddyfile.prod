@@ -1,0 +1,250 @@
+# Caddyfile.prod - 生产环境配置
+# 用于生产环境的 Caddy 配置文件
+
+{
+    # 生产环境全局配置
+    auto_https on
+    email your-email@example.com
+    
+    # 管理接口配置（生产环境建议关闭或限制访问）
+    admin off
+    
+    # 全局日志配置
+    log {
+        output file /var/log/caddy/global.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 90d
+        }
+        format json
+        level WARN
+    }
+}
+
+# 主域名配置
+your-domain.com {
+    # 自动 HTTPS 证书配置
+    tls {
+        protocols tls1.2 tls1.3
+        ciphers TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    }
+
+    # 启用响应压缩
+    encode {
+        gzip 6
+        minimum_length 1024
+    }
+
+    # 生产环境安全头部配置
+    header {
+        # HSTS - 强制 HTTPS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        
+        # 防止 MIME 类型嗅探
+        X-Content-Type-Options "nosniff"
+        
+        # 防止点击劫持
+        X-Frame-Options "DENY"
+        
+        # XSS 保护
+        X-XSS-Protection "1; mode=block"
+        
+        # 引用策略
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # 内容安全策略 (根据实际需求调整)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+        
+        # 权限策略
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), screen-wake-lock=()"
+        
+        # 隐藏服务器信息
+        -Server
+        -X-Powered-By
+        
+        # 缓存控制
+        Cache-Control "public, max-age=3600"
+    }
+
+    # API 路由 - 代理到后端服务
+    handle /api/* {
+        # API 特定的头部配置
+        header {
+            Cache-Control "no-cache, no-store, must-revalidate"
+            Pragma "no-cache"
+            Expires "0"
+        }
+        
+        reverse_proxy backend:8080 {
+            # 传递真实 IP 信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+            header_up X-Forwarded-Host {host}
+            
+            # 健康检查
+            health_uri /api/health
+            health_interval 30s
+            health_timeout 10s
+            health_status 200
+            
+            # 故障转移配置
+            fail_duration 30s
+            max_fails 3
+            unhealthy_status 5xx
+            
+            # 请求超时
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 30s
+            }
+        }
+    }
+
+    # WebSocket 连接 - 代理到后端服务
+    handle /ws/* {
+        reverse_proxy backend:8080 {
+            # WebSocket 升级头部
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+            header_up Sec-WebSocket-Key {>Sec-WebSocket-Key}
+            header_up Sec-WebSocket-Version {>Sec-WebSocket-Version}
+            header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+            header_up Sec-WebSocket-Extensions {>Sec-WebSocket-Extensions}
+            
+            # 传递真实 IP 信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+            
+            # WebSocket 特定配置
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 10s
+            }
+        }
+    }
+
+    # 静态资源缓存配置
+    handle /static/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy frontend:3000
+    }
+
+    # 前端应用 - 代理到 Next.js 服务
+    handle {
+        # 前端资源缓存策略
+        @html {
+            path *.html
+        }
+        header @html Cache-Control "public, max-age=300"
+        
+        @assets {
+            path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2
+        }
+        header @assets Cache-Control "public, max-age=31536000"
+        
+        reverse_proxy frontend:3000 {
+            # 传递真实 IP 信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+            header_up X-Forwarded-Host {host}
+            
+            # 健康检查
+            health_uri /
+            health_interval 60s
+            health_timeout 15s
+            health_status 200
+            
+            # 故障转移配置
+            fail_duration 60s
+            max_fails 5
+            
+            # 请求超时
+            transport http {
+                dial_timeout 15s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # 限流配置（防止 DDoS）
+    rate_limit {
+        zone dynamic {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+        zone api {
+            key {remote_host}
+            events 60
+            window 1m
+            match {
+                path /api/*
+            }
+        }
+    }
+
+    # 访问日志
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 500mb
+            roll_keep 30
+            roll_keep_for 90d
+        }
+        format json {
+            time_format "2006-01-02T15:04:05.000Z07:00"
+            message_key "msg"
+            level_key "level"
+            time_key "ts"
+            caller_key "caller"
+            name_key "logger"
+        }
+        level INFO
+    }
+
+    # 错误日志
+    log {
+        output file /var/log/caddy/error.log {
+            roll_size 100mb
+            roll_keep 10
+            roll_keep_for 90d
+        }
+        format json
+        level ERROR
+        include http.log.error
+    }
+}
+
+# WWW 重定向
+www.your-domain.com {
+    redir https://your-domain.com{uri} permanent
+}
+
+# 其他域名重定向（如果有）
+# old-domain.com {
+#     redir https://your-domain.com{uri} permanent
+# }
+
+# HTTP 到 HTTPS 重定向
+http://your-domain.com {
+    redir https://your-domain.com{uri} permanent
+}
+
+http://www.your-domain.com {
+    redir https://your-domain.com{uri} permanent
+}
+
+# 健康检查端点（可选，用于负载均衡器）
+health.your-domain.com {
+    respond /health 200 {
+        body "OK"
+        close
+    }
+    
+    respond 404
+} 

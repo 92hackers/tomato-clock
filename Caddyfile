@@ -1,0 +1,239 @@
+# Caddyfile - 番茄时钟项目配置选择指南
+# 
+# 本项目提供了两个不同的 Caddy 配置文件：
+# 
+# 1. Caddyfile.dev  - 开发环境配置
+# 2. Caddyfile.prod - 生产环境配置
+#
+# 请根据您的环境选择合适的配置文件。
+
+# ==========================================
+# 开发环境使用方法
+# ==========================================
+# 
+# 使用开发环境配置启动 Caddy：
+# docker-compose exec caddy caddy start --config /etc/caddy/Caddyfile.dev
+# 
+# 或者在 docker-compose.yml 中修改挂载：
+# volumes:
+#   - ./Caddyfile.dev:/etc/caddy/Caddyfile
+# 
+# 开发环境特性：
+# - 禁用自动 HTTPS（使用 HTTP）
+# - 简化的安全头部配置
+# - 控制台日志输出
+# - 允许内联脚本和样式
+# - 提供多个调试端口
+
+# ==========================================
+# 生产环境使用方法
+# ==========================================
+# 
+# 使用生产环境配置启动 Caddy：
+# docker-compose exec caddy caddy start --config /etc/caddy/Caddyfile.prod
+# 
+# 或者在 docker-compose.yml 中修改挂载：
+# volumes:
+#   - ./Caddyfile.prod:/etc/caddy/Caddyfile
+# 
+# 生产环境特性：
+# - 自动 HTTPS 证书管理
+# - 完整的安全头部配置
+# - 文件日志记录和轮转
+# - 健康检查和故障转移
+# - 限流和 DDoS 保护
+# - 缓存优化配置
+
+# ==========================================
+# 快速切换配置
+# ==========================================
+# 
+# 您可以通过符号链接快速切换配置：
+# 
+# 切换到开发环境：
+# ln -sf Caddyfile.dev Caddyfile.active
+# 
+# 切换到生产环境：
+# ln -sf Caddyfile.prod Caddyfile.active
+# 
+# 然后在 docker-compose.yml 中使用：
+# volumes:
+#   - ./Caddyfile.active:/etc/caddy/Caddyfile
+
+# ==========================================
+# 环境变量配置
+# ==========================================
+# 
+# 在使用生产环境配置前，请确保设置以下环境变量：
+# 
+# DOMAIN_NAME=your-domain.com     # 您的域名
+# ADMIN_EMAIL=your-email@example.com  # SSL 证书邮箱
+# 
+# 或者直接修改 Caddyfile.prod 中的相应配置
+
+# ==========================================
+# 默认开发环境配置（用于 Docker Compose）
+# ==========================================
+
+{
+    # 开发环境全局配置
+    auto_https off
+    admin localhost:2019
+}
+
+# 本地开发主端口
+localhost {
+    encode gzip
+    
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https:;"
+        -Server
+    }
+
+    handle /api/* {
+        reverse_proxy backend:8080 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+        }
+    }
+
+    handle /ws/* {
+        reverse_proxy backend:8080 {
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+            header_up Sec-WebSocket-Key {>Sec-WebSocket-Key}
+            header_up Sec-WebSocket-Version {>Sec-WebSocket-Version}
+            header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+            header_up Sec-WebSocket-Extensions {>Sec-WebSocket-Extensions}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    handle {
+        reverse_proxy frontend:3000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+        }
+    }
+
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
+
+# 生产环境配置
+your-domain.com {
+    # 自动 HTTPS 证书配置
+    tls {
+        protocols tls1.2 tls1.3
+    }
+
+    # 启用响应压缩
+    encode gzip
+
+    # 安全头部配置
+    header {
+        # HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # 防止 MIME 类型嗅探
+        X-Content-Type-Options "nosniff"
+        # 防止点击劫持
+        X-Frame-Options "DENY"
+        # XSS 保护
+        X-XSS-Protection "1; mode=block"
+        # 引用策略
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # CSP 安全策略 (可根据需要调整)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' ws: wss:;"
+        
+        # 隐藏服务器信息
+        -Server
+    }
+
+    # API 路由 - 代理到后端服务
+    handle /api/* {
+        reverse_proxy backend:8080 {
+            # 传递真实 IP 信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+            
+            # 健康检查
+            health_uri /api/health
+            health_interval 10s
+            health_timeout 5s
+        }
+    }
+
+    # WebSocket 连接 - 代理到后端服务
+    handle /ws/* {
+        reverse_proxy backend:8080 {
+            # WebSocket 升级头部
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+            header_up Sec-WebSocket-Key {>Sec-WebSocket-Key}
+            header_up Sec-WebSocket-Version {>Sec-WebSocket-Version}
+            header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+            header_up Sec-WebSocket-Extensions {>Sec-WebSocket-Extensions}
+            
+            # 传递真实 IP 信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 前端应用 - 代理到 Next.js 服务
+    handle {
+        reverse_proxy frontend:3000 {
+            # 传递真实 IP 信息
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+            
+            # 健康检查
+            health_uri /api/health
+            health_interval 30s
+            health_timeout 10s
+        }
+    }
+
+    # 访问日志
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+            roll_keep_for 30d
+        }
+        format json
+        level INFO
+    }
+
+    # 错误日志
+    log {
+        output file /var/log/caddy/error.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 30d
+        }
+        format json
+        level ERROR
+    }
+}
+
+# 重定向 HTTP 到 HTTPS (生产环境)
+http://your-domain.com {
+    redir https://your-domain.com{uri} permanent
+} 
