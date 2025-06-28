@@ -104,12 +104,25 @@ frontend/
 │       ├── api.ts
 │       └── index.ts
 │
+├── __tests__/               # 测试文件
+│   ├── components/          # 组件测试
+│   │   ├── ui/             # UI 组件测试
+│   │   ├── Timer/          # 计时器组件测试
+│   │   ├── Task/           # 任务组件测试
+│   │   └── Statistics/     # 统计组件测试
+│   ├── hooks/              # Hook 测试
+│   ├── store/              # 状态管理测试
+│   ├── lib/                # 工具函数测试
+│   └── integration/        # 集成测试
+│
 ├── public/                  # 静态资源
 │   ├── icons/              # 图标文件
 │   ├── sounds/             # 提醒音效
 │   ├── images/             # 图片资源
 │   └── favicon.ico
 │
+├── jest.config.js          # Jest 测试配置
+├── jest.setup.js           # Jest 测试环境设置
 ├── tailwind.config.js      # Tailwind CSS 配置
 ├── next.config.js          # Next.js 配置
 ├── tsconfig.json           # TypeScript 配置
@@ -184,6 +197,21 @@ backend/
 │       ├── crypto.go      # 加密解密
 │       └── time.go        # 时间处理
 │
+├── tests/                 # 测试文件
+│   ├── unit/             # 单元测试
+│   │   ├── handlers/     # 处理器测试
+│   │   ├── services/     # 服务测试
+│   │   ├── models/       # 模型测试
+│   │   └── utils/        # 工具函数测试
+│   ├── integration/      # 集成测试
+│   │   ├── api/          # API 集成测试
+│   │   ├── database/     # 数据库集成测试
+│   │   └── socket/       # Socket.IO 集成测试
+│   └── fixtures/         # 测试数据
+│       ├── users.json
+│       ├── tasks.json
+│       └── timer_sessions.json
+│
 ├── migrations/            # 数据库迁移文件
 │   ├── 001_create_users.sql
 │   ├── 002_create_tasks.sql
@@ -195,12 +223,266 @@ backend/
 │
 ├── scripts/               # 部署脚本
 │   ├── build.sh
-│   └── deploy.sh
+│   ├── deploy.sh
+│   └── test.sh
 │
 ├── go.mod                 # Go 模块定义
-├── go.sum                 # 依赖校验文件
-├── Dockerfile            # Docker 镜像配置
-└── README.md
+└── go.sum                 # Go 模块校验文件
+```
+
+### 2.3 测试架构设计
+
+#### 2.3.1 测试分层策略
+
+本项目采用标准的测试金字塔结构，确保全面的测试覆盖：
+
+```
+           E2E Tests (10%)
+         ↗               ↖
+    Integration Tests (20%)
+  ↗                       ↖
+Unit Tests (70%)
+```
+
+#### 2.3.2 前端测试架构
+
+**测试工具栈**
+- **Jest**: 测试运行器和断言库
+- **Testing Library**: React 组件测试
+- **MSW (Mock Service Worker)**: API 模拟
+- **Playwright**: E2E 测试
+
+**测试结构**
+```
+frontend/__tests__/
+├── __mocks__/              # 模拟数据和函数
+│   ├── api.ts             # API 模拟
+│   ├── localStorage.ts    # localStorage 模拟
+│   └── socket.ts          # Socket.IO 模拟
+│
+├── components/            # 组件测试
+│   ├── Timer/
+│   │   ├── TimerDisplay.test.tsx
+│   │   ├── TimerControls.test.tsx
+│   │   └── ModeSelector.test.tsx
+│   ├── Task/
+│   │   ├── TaskList.test.tsx
+│   │   ├── TaskItem.test.tsx
+│   │   └── AddTaskForm.test.tsx
+│   └── ui/
+│       ├── Button.test.tsx
+│       ├── Input.test.tsx
+│       └── Modal.test.tsx
+│
+├── hooks/                 # Hook 测试
+│   ├── useTimer.test.ts
+│   ├── useTasks.test.ts
+│   ├── useAuth.test.ts
+│   └── useSocket.test.ts
+│
+├── store/                 # 状态管理测试
+│   ├── timerStore.test.ts
+│   ├── taskStore.test.ts
+│   └── authStore.test.ts
+│
+├── lib/                   # 工具函数测试
+│   ├── api.test.ts
+│   ├── utils.test.ts
+│   └── validations.test.ts
+│
+├── integration/           # 集成测试
+│   ├── timer-task-flow.test.tsx
+│   ├── auth-flow.test.tsx
+│   └── socket-sync.test.tsx
+│
+└── e2e/                   # E2E 测试
+    ├── timer-workflow.spec.ts
+    ├── task-management.spec.ts
+    └── user-auth.spec.ts
+```
+
+#### 2.3.3 后端测试架构
+
+**测试工具栈**
+- **Testify**: 断言库和测试套件
+- **Ginkgo**: BDD 风格测试框架
+- **GoMock**: 接口模拟
+- **Testcontainers**: 集成测试容器化
+
+**测试结构**
+```
+backend/tests/
+├── unit/                  # 单元测试
+│   ├── handlers/
+│   │   ├── auth_test.go
+│   │   ├── timer_test.go
+│   │   ├── task_test.go
+│   │   └── user_test.go
+│   ├── services/
+│   │   ├── auth_service_test.go
+│   │   ├── timer_service_test.go
+│   │   ├── task_service_test.go
+│   │   └── stats_service_test.go
+│   ├── models/
+│   │   ├── user_test.go
+│   │   ├── task_test.go
+│   │   └── timer_session_test.go
+│   └── utils/
+│       ├── response_test.go
+│       ├── validation_test.go
+│       └── crypto_test.go
+│
+├── integration/           # 集成测试
+│   ├── api/
+│   │   ├── auth_api_test.go
+│   │   ├── timer_api_test.go
+│   │   └── task_api_test.go
+│   ├── database/
+│   │   ├── user_repo_test.go
+│   │   ├── task_repo_test.go
+│   │   └── migration_test.go
+│   └── socket/
+│       ├── connection_test.go
+│       ├── events_test.go
+│       └── rooms_test.go
+│
+├── fixtures/              # 测试数据
+│   ├── users.json
+│   ├── tasks.json
+│   └── timer_sessions.json
+│
+├── mocks/                 # 生成的模拟对象
+│   ├── service_mocks.go
+│   ├── repository_mocks.go
+│   └── socket_mocks.go
+│
+└── helpers/               # 测试辅助函数
+    ├── database.go        # 测试数据库设置
+    ├── server.go          # 测试服务器设置
+    └── fixtures.go        # 测试数据加载
+```
+
+#### 2.3.4 TDD 开发流程
+
+**Red-Green-Refactor 循环**
+
+1. **🔴 Red 阶段**: 编写失败的测试
+```go
+// 示例：后端单元测试
+func TestCreateTimer(t *testing.T) {
+    // Given
+    userID := uint(1)
+    duration := 25 * 60 // 25 minutes
+    
+    // When
+    timer, err := timerService.CreateTimer(userID, duration)
+    
+    // Then
+    assert.NoError(t, err)
+    assert.Equal(t, duration, timer.Duration)
+    assert.Equal(t, models.TimerStatusPending, timer.Status)
+}
+```
+
+```typescript
+// 示例：前端组件测试
+describe('TimerDisplay', () => {
+  it('should display timer in MM:SS format', () => {
+    // Given
+    const timeLeft = 1500; // 25:00
+    
+    // When
+    render(<TimerDisplay timeLeft={timeLeft} />);
+    
+    // Then
+    expect(screen.getByText('25:00')).toBeInTheDocument();
+  });
+});
+```
+
+2. **🟢 Green 阶段**: 编写最小代码使测试通过
+3. **🔄 Refactor 阶段**: 重构代码提高质量
+
+#### 2.3.5 测试覆盖率要求
+
+- **后端代码**: 最低 85% 覆盖率，关键业务逻辑 95%+
+- **前端组件**: 最低 80% 覆盖率，核心组件 90%+
+- **API 接口**: 100% 覆盖率（包括错误场景）
+- **关键业务流程**: 100% 覆盖率（端到端测试）
+
+#### 2.3.6 测试自动化
+
+**持续集成流程**
+```yaml
+# .github/workflows/test.yml
+name: Test Suite
+on: [push, pull_request]
+
+jobs:
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Run unit tests
+        run: cd frontend && npm run test:unit
+      - name: Run integration tests
+        run: cd frontend && npm run test:integration
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.21'
+      - name: Run unit tests
+        run: cd backend && go test ./... -v
+      - name: Run integration tests
+        run: cd backend && go test -tags=integration ./... -v
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [frontend-tests, backend-tests]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Docker Compose
+        run: docker-compose up -d
+      - name: Run E2E tests
+        run: cd frontend && npm run test:e2e
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-results
+          path: frontend/test-results
 ```
 
 ## 3. 数据库设计
