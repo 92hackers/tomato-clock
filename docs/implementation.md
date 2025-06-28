@@ -14,7 +14,7 @@
 │                │    │                │    │                │
 │   Next.js      │◄──►│   Gin Router   │◄──►│  PostgreSQL    │
 │   React 18     │    │   Middleware   │    │  Redis         │
-│   TypeScript   │    │   JWT Auth     │    │  File Storage  │
+│   TypeScript   │    │   Session Auth │    │  File Storage  │
 │   Tailwind CSS │    │   Validation   │    │                │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
@@ -136,7 +136,7 @@ backend/
 │   │   └── socket.go      # Socket.IO 处理器
 │   │
 │   ├── middleware/        # 中间件
-│   │   ├── auth.go        # JWT 认证中间件
+│   │   ├── auth.go        # Session 认证中间件
 │   │   ├── cors.go        # CORS 中间件
 │   │   ├── logger.go      # 日志中间件
 │   │   ├── ratelimit.go   # 限流中间件
@@ -176,7 +176,7 @@ backend/
 │   │   ├── database.go    # 数据库配置
 │   │   ├── redis.go       # Redis 配置
 │   │   ├── socket.go      # Socket.IO 配置
-│   │   └── jwt.go         # JWT 配置
+│   │   └── session.go     # Session 配置
 │   │
 │   └── utils/             # 工具函数
 │       ├── response.go    # 响应格式化
@@ -639,8 +639,8 @@ interface AchievementData {
 POST   /api/v1/auth/register      # 用户注册
 POST   /api/v1/auth/login         # 用户登录
 POST   /api/v1/auth/logout        # 用户登出
-POST   /api/v1/auth/refresh       # 刷新令牌
 GET    /api/v1/auth/me           # 获取当前用户信息
+GET    /api/v1/auth/session      # 获取会话状态
 ```
 
 #### 计时器相关
@@ -790,13 +790,13 @@ export interface AchievementData {
 class SimpleSocketManager {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
-  connect(token: string): Socket<ServerToClientEvents, ClientToServerEvents> {
+  connect(): Socket<ServerToClientEvents, ClientToServerEvents> {
     if (this.socket?.connected) {
       return this.socket;
     }
 
     this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080', {
-      auth: { token },
+      withCredentials: true, // 允许携带 cookie
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
@@ -849,70 +849,34 @@ export const socketManager = new SimpleSocketManager();
 
 ```typescript
 // hooks/useSocket.ts
-import { useEffect, useRef, useState } from 'react';
-import { Socket } from 'socket.io-client';
-import { 
-  socketManager, 
-  ServerToClientEvents, 
-  ClientToServerEvents,
-  TimerSyncData,
-  TaskSyncData,
-  AchievementData
-} from '@/lib/socket';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { socketManager } from '@/lib/socket';
 
 export const useSocket = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const { token } = useAuthStore();
+  const socketRef = useRef<Socket | null>(null);
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (token) {
-      socketRef.current = socketManager.connect(token);
-      const socket = socketRef.current;
-
-      socket.on('connect', () => {
-        setIsConnected(true);
-      });
-
-      socket.on('disconnect', () => {
-        setIsConnected(false);
-      });
-
-      return () => {
-        socket.off('connect');
-        socket.off('disconnect');
-      };
+    if (isAuthenticated) {
+      // 连接 Socket.IO，session 会通过 cookie 自动发送
+      socketRef.current = socketManager.connect();
+    } else {
+      // 断开连接
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     }
-  }, [token]);
 
-  // 数据同步监听器
-  const onTimerSync = (callback: (data: TimerSyncData) => void) => {
-    socketRef.current?.on('timer_sync', callback);
-    return () => socketRef.current?.off('timer_sync', callback);
-  };
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [isAuthenticated]);
 
-  const onTaskSync = (callback: (data: TaskSyncData) => void) => {
-    socketRef.current?.on('task_sync', callback);
-    return () => socketRef.current?.off('task_sync', callback);
-  };
-
-  const onAchievementUnlocked = (callback: (data: AchievementData) => void) => {
-    socketRef.current?.on('achievement_unlocked', callback);
-    return () => socketRef.current?.off('achievement_unlocked', callback);
-  };
-
-  const requestSync = () => {
-    socketManager.requestSync();
-  };
-
-  return {
-    isConnected,
-    onTimerSync,
-    onTaskSync,
-    onAchievementUnlocked,
-    requestSync,
-  };
+  return socketRef.current;
 };
 ```
 
@@ -972,15 +936,15 @@ func (s *SimpleSocketServer) setupEvents() {
     s.socketServer.OnConnect("/", func(conn socketio.Conn) error {
         log.Printf("Socket connected: %s", conn.ID())
         
-        // 简单的认证检查
-        token := conn.URL().Query().Get("token")
-        if token == "" {
-            return fmt.Errorf("authentication required")
+        // 基于 Session 的认证检查
+        sessionID, err := extractSessionFromRequest(conn.Context().(*gin.Context).Request)
+        if err != nil {
+            return fmt.Errorf("authentication required: %v", err)
         }
         
-        userID, err := validateJWTToken(token)
+        userID, err := validateSession(sessionID)
         if err != nil {
-            return err
+            return fmt.Errorf("authentication failed: %v", err)
         }
         
         // 存储用户连接
@@ -1398,7 +1362,7 @@ services:
       - DB_PASSWORD=password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=your-secret-key
+      - SESSION_SECRET=your-session-secret-key
     depends_on:
       - postgres
       - redis
@@ -1429,115 +1393,40 @@ volumes:
   caddy_config:
 ```
 
-#### 环境特定的配置文件
+#### 环境配置
 
-**开发环境专用配置 (docker-compose.dev.yml)：**
+**开发环境 (.env.dev)**
+```env
+# 服务器配置
+PORT=8080
+GIN_MODE=debug
 
-```yaml
-version: '3.8'
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=tomato_user
+DB_PASSWORD=tomato_password
+DB_NAME=tomato_db
+DB_SSLMODE=disable
 
-services:
-  caddy:
-    volumes:
-      - ./Caddyfile.dev:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    environment:
-      - CADDY_LOG_LEVEL=DEBUG
-    ports:
-      - "80:80"
-      - "8000:8000"  # 额外的开发端口
-      - "3001:3001"  # 前端直接访问
-      - "8001:8001"  # 后端直接访问
+# Redis 配置
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 
-  frontend:
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost/api
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: ["npm", "run", "dev"]
+# Session 配置
+SESSION_SECRET=your-session-secret-key
+SESSION_TIMEOUT=7200  # 2小时，单位：秒
+SESSION_COOKIE_NAME=session_id
+SESSION_COOKIE_SECURE=false  # 开发环境设为 false
+SESSION_COOKIE_HTTPONLY=true
 
-  backend:
-    environment:
-      - GIN_MODE=debug
-      - LOG_LEVEL=debug
-    volumes:
-      - ./backend:/app
-    command: ["go", "run", "cmd/server/main.go"]
+# Socket.IO 配置
+SOCKET_CORS_ORIGINS=http://localhost:3000
 
-  postgres:
-    ports:
-      - "5432:5432"  # 开发时可直接访问数据库
-    
-  redis:
-    ports:
-      - "6379:6379"  # 开发时可直接访问 Redis
-```
-
-**生产环境专用配置 (docker-compose.prod.yml)：**
-
-```yaml
-version: '3.8'
-
-services:
-  caddy:
-    volumes:
-      - ./Caddyfile.prod:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-      - caddy_logs:/var/log/caddy
-    environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:-your-domain.com}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-your-email@example.com}
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  frontend:
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://${DOMAIN_NAME}/api
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  backend:
-    environment:
-      - GIN_MODE=release
-      - LOG_LEVEL=info
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  postgres:
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    
-  redis:
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-volumes:
-  caddy_logs:
+# 其他配置
+LOG_LEVEL=debug
 ```
 
 #### 前端 Dockerfile
@@ -1783,19 +1672,50 @@ server {
 ## 8. 安全方案
 
 ### 8.1 认证授权
-- JWT 令牌认证
-- 刷新令牌机制
-- 密码哈希存储
+- 基于 Cookie 的 Session 认证
+- Session 存储在 Redis 中
+- 密码哈希存储（bcrypt）
 - 角色权限控制
+- Session 过期和续期机制
 
-### 8.2 数据安全
+### 8.2 Session 安全设计
+
+#### Session 存储策略
+- **存储位置**: Redis 数据库，支持分布式部署
+- **Session ID**: 使用加密安全的随机字符串生成
+- **过期机制**: 
+  - 默认过期时间：2小时
+  - 滑动过期：用户活跃时自动续期
+  - 绝对过期：最长保持时间 24 小时
+
+#### Cookie 安全配置
+- **HttpOnly**: 防止 XSS 攻击访问 Cookie
+- **Secure**: HTTPS 环境下强制加密传输
+- **SameSite**: 防止 CSRF 攻击
+- **Path**: 限制 Cookie 作用域
+- **Domain**: 控制子域名访问权限
+
+#### Session 数据结构
+```go
+type Session struct {
+    UserID       int       `json:"user_id"`
+    Username     string    `json:"username"`
+    CreatedAt    time.Time `json:"created_at"`
+    LastAccess   time.Time `json:"last_access"`
+    IPAddress    string    `json:"ip_address"`
+    UserAgent    string    `json:"user_agent"`
+    Permissions  []string  `json:"permissions"`
+}
+```
+
+### 8.3 数据安全
 - HTTPS 传输加密
 - 敏感数据加密存储
 - SQL 注入防护
 - XSS 攻击防护
 - CSRF 保护
 
-### 8.3 系统安全
+### 8.4 系统安全
 - 限流和防护
 - 日志审计
 - 异常监控

@@ -98,7 +98,7 @@
 
 ### 当前版本 (v1.0) 技术栈
 - **前端**: Next.js + React 18 + TypeScript + Tailwind CSS
-- **后端**: Go + Gin + GORM + JWT
+- **后端**: Go + Gin + GORM + Session
 - **数据库**: PostgreSQL + Redis
 - **部署**: Docker + Docker Compose
 

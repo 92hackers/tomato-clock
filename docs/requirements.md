@@ -177,7 +177,7 @@
   - 支持水平扩展
 
 - **安全要求**：
-  - JWT 令牌认证
+  - 基于 Cookie 的 Session 认证
   - Socket.IO 连接认证和授权
   - HTTPS 加密传输
   - 防 SQL 注入和 XSS 攻击
