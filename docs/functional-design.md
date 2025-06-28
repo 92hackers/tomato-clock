@@ -47,54 +47,12 @@
    - 计时结束时发出提示音或通知
    - 根据设置可能自动切换到下一个模式（如从专注切换到休息）
 
-#### 数据模型
+#### 业务规则
 
-```typescript
-// 用户模型
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  avatar_url?: string;
-  timezone: string;
-  settings: UserSettings;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// 计时器会话模型
-interface TimerSession {
-  id: number;
-  user_id: number;
-  task_id?: number;
-  session_type: 'focus' | 'short_break' | 'long_break';
-  duration: number; // 秒数
-  completed_duration: number;
-  status: 'active' | 'paused' | 'completed' | 'cancelled';
-  started_at: Date;
-  completed_at?: Date;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// 用户设置模型
-interface UserSettings {
-  id: number;
-  user_id: number;
-  focus_duration: number; // 25分钟 = 1500秒
-  short_break_duration: number; // 5分钟 = 300秒
-  long_break_duration: number; // 15分钟 = 900秒
-  long_break_interval: number; // 每4个番茄后长休息
-  auto_start_breaks: boolean;
-  auto_start_focus: boolean;
-  sound_enabled: boolean;
-  sound_volume: number; // 0-100
-  notifications_enabled: boolean;
-  theme: 'light' | 'dark' | 'auto';
-  created_at: Date;
-  updated_at: Date;
-}
-```
+- 专注时间完成后，用户的当前任务完成番茄数+1
+- 每完成4个专注时间段，系统推荐进行长休息
+- 计时器状态在多设备间实时同步
+- 支持后台计时，应用关闭时计时器继续运行
 
 ### 2.2 任务管理模块
 
@@ -114,56 +72,27 @@ interface UserSettings {
    - 用户输入任务名称、预计番茄数和备注
    - 用户点击"保存"按钮创建任务
 
-3. **完成番茄**
+3. **编辑任务**
+   - 用户点击任务项进入编辑模式
+   - 可修改任务名称、预计番茄数、优先级等
+   - 支持添加标签和设置截止日期
+
+4. **完成番茄**
    - 当一个专注时间段完成时，当前任务的完成番茄数+1
    - 更新任务的完成进度显示
 
-4. **完成任务**
+5. **完成任务**
    - 用户点击任务前的复选框
    - 任务标记为已完成
    - 已完成任务可能会被归档或移至底部
 
-#### 数据模型
+#### 业务规则
 
-```typescript
-// 任务模型
-interface Task {
-  id: number;
-  user_id: number;
-  title: string;
-  description?: string;
-  estimated_pomodoros: number;
-  completed_pomodoros: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'archived';
-  priority: number; // 0-5，数字越大优先级越高
-  tags: string[];
-  due_date?: Date;
-  completed_at?: Date;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// 任务创建请求
-interface CreateTaskRequest {
-  title: string;
-  description?: string;
-  estimated_pomodoros: number;
-  priority?: number;
-  tags?: string[];
-  due_date?: Date;
-}
-
-// 任务更新请求
-interface UpdateTaskRequest {
-  title?: string;
-  description?: string;
-  estimated_pomodoros?: number;
-  priority?: number;
-  tags?: string[];
-  due_date?: Date;
-  status?: 'pending' | 'in_progress' | 'completed' | 'archived';
-}
-```
+- 任务可以设置优先级（1-5级）
+- 任务可以添加多个标签进行分类
+- 任务可以设置截止日期
+- 完成的番茄数不能超过预计番茄数（除非用户手动调整）
+- 删除任务时需要确认操作
 
 ### 2.3 统计分析模块
 
@@ -185,58 +114,18 @@ interface UpdateTaskRequest {
    - 用户可以选择不同的时间范围（周、月、年）
    - 统计图表和数据随之更新
 
-#### 数据模型
+4. **热力图显示**
+   - 类似GitHub的提交热力图，显示每日专注强度
+   - 颜色深浅表示当日完成的番茄数
 
-```typescript
-// 统计数据模型
-interface DailyStats {
-  date: Date;
-  user_id: number;
-  completed_pomodoros: number;
-  focus_time: number; // 总专注时间（秒）
-  completed_tasks: number;
-  break_time: number; // 总休息时间（秒）
-  efficiency_score: number; // 效率评分 0-100
-}
+#### 统计指标
 
-interface WeeklyStats {
-  start_date: Date;
-  end_date: Date;
-  user_id: number;
-  total_pomodoros: number;
-  total_focus_time: number;
-  total_completed_tasks: number;
-  daily_stats: DailyStats[];
-  weekly_average: {
-    pomodoros_per_day: number;
-    focus_time_per_day: number;
-    tasks_per_day: number;
-  };
-}
-
-interface MonthlyStats {
-  year: number;
-  month: number;
-  user_id: number;
-  total_pomodoros: number;
-  total_focus_time: number;
-  total_completed_tasks: number;
-  weekly_stats: WeeklyStats[];
-  monthly_trends: {
-    pomodoro_trend: number; // 增长率 %
-    focus_time_trend: number;
-    task_completion_trend: number;
-  };
-}
-
-// 热力图数据模型
-interface HeatmapData {
-  date: string; // YYYY-MM-DD
-  pomodoros: number;
-  focus_time: number;
-  intensity: number; // 0-4，热力强度
-}
-```
+- **完成番茄数**: 用户完成的专注时间段数量
+- **专注时间**: 用户实际专注的总时长
+- **完成任务数**: 用户完成的任务数量
+- **平均每日番茄数**: 一段时间内的日均番茄完成数
+- **连续专注天数**: 用户连续使用应用的天数
+- **效率评分**: 基于完成率和连续性的综合评分
 
 ### 2.4 设置模块
 
@@ -257,28 +146,24 @@ interface HeatmapData {
 3. **通知设置**
    - 用户可以开启或关闭时间结束提醒
    - 用户可以开启或关闭休息提醒
+   - 可以选择不同的提示音
 
 4. **主题设置**
-   - 用户可以切换深色模式
+   - 用户可以选择浅色模式、深色模式或跟随系统
+   - 可以选择不同的界面颜色主题
 
-#### 数据模型
+5. **自动化设置**
+   - 设置是否自动开始休息时间
+   - 设置是否自动开始下一个专注时间
+   - 设置长休息间隔（默认每4个番茄）
 
-```typescript
-{
-  settings: {
-    times: {
-      focus: Number, // 专注时长（秒）
-      shortBreak: Number, // 短休息时长（秒）
-      longBreak: Number // 长休息时长（秒）
-    },
-    notifications: {
-      timeEnd: Boolean, // 时间结束提醒
-      breakReminder: Boolean // 休息提醒
-    },
-    theme: "light" | "dark" | "auto" // 主题
-  }
-}
-```
+#### 配置选项
+
+- **时间配置**: 专注时长、短休息时长、长休息时长
+- **通知配置**: 声音提醒、浏览器通知、震动提醒（移动端）
+- **自动化配置**: 自动开始休息、自动开始专注、长休息间隔
+- **界面配置**: 主题颜色、深浅模式、语言设置
+- **数据配置**: 数据同步、隐私设置、导出数据
 
 ### 2.5 成就与提示模块
 
@@ -286,56 +171,37 @@ interface HeatmapData {
 
 成就与提示模块通过游戏化元素和实用建议来激励用户持续使用番茄工作法。
 
-#### 交互流程
+#### 成就系统
 
-1. **查看成就**
-   - 用户点击成就与提示界面
-   - 显示已解锁和未解锁的成就列表
-   - 已解锁成就显示获取时间和详情
+1. **成就类型**
+   - **入门成就**: 完成第一个番茄、创建第一个任务
+   - **里程碑成就**: 完成100个番茄、连续使用7天
+   - **挑战成就**: 单日完成10个番茄、一周完成50个番茄
+   - **特殊成就**: 在特定时间段内完成任务、高效率完成
 
-2. **阅读专注技巧**
-   - 在同一界面下方显示专注技巧卡片
-   - 用户可以浏览不同的技巧建议
+2. **解锁条件**
+   - 完成特定数量的番茄时间
+   - 连续使用应用的天数
+   - 完成特定数量的任务
+   - 达到特定的效率指标
 
-#### 数据模型
+3. **奖励机制**
+   - 解锁成就时显示庆祝动画
+   - 获得虚拟徽章和积分
+   - 解锁新的界面主题或提示音
 
-```typescript
-// 成就模型
-interface Achievement {
-  id: number;
-  name: string;
-  description: string;
-  icon: string;
-  type: 'daily' | 'weekly' | 'milestone' | 'streak';
-  requirement: AchievementRequirement;
-  points: number; // 成就奖励积分
-  created_at: Date;
-}
+#### 专注技巧
 
-interface AchievementRequirement {
-  type: 'pomodoro_count' | 'focus_time' | 'task_completion' | 'streak_days';
-  target_value: number;
-  time_period?: 'daily' | 'weekly' | 'monthly' | 'all_time';
-}
+1. **技巧分类**
+   - **时间管理**: 如何更好地规划时间
+   - **专注技巧**: 提高专注力的方法
+   - **效率提升**: 提高工作效率的建议
+   - **健康提醒**: 保护眼睛和身体健康的建议
 
-interface UserAchievement {
-  id: number;
-  user_id: number;
-  achievement_id: number;
-  unlocked_at: Date;
-  achievement: Achievement;
-}
-
-// 专注技巧模型
-interface FocusTip {
-  id: number;
-  title: string;
-  content: string;
-  category: 'time_management' | 'focus_techniques' | 'productivity' | 'wellness';
-  icon: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-}
-```
+2. **展示方式**
+   - 在休息时间展示随机技巧
+   - 在成就界面浏览所有技巧
+   - 根据用户使用情况推荐相关技巧
 
 ### 2.6 专注历程模块
 
@@ -343,538 +209,90 @@ interface FocusTip {
 
 专注历程模块记录用户使用番茄时钟的重要里程碑和进步情况，帮助用户了解自己在时间管理方面的成长。
 
-#### 交互流程
+#### 功能特性
 
-1. **查看学习曲线**
-   - 用户点击专注历程界面
-   - 显示用户在专注能力、持续性和效率提升方面的进度条
+1. **学习曲线**
+   - 显示用户在专注能力、持续性和效率提升方面的进度
+   - 用进度条和百分比展示各项能力的发展
 
-2. **浏览历程记录**
-   - 在界面下方以时间轴形式展示用户的重要里程碑
-   - 每个里程碑包含日期、标题和描述
+2. **历程记录**
+   - 记录重要的里程碑事件
+   - 以时间轴形式展示用户的成长历程
+   - 包括第一次使用、重要成就、连续使用记录等
 
-#### 数据模型
+3. **进步分析**
+   - 分析用户的使用模式和改进趋势
+   - 提供个性化的建议和鼓励
+   - 预测用户可能达到的下一个里程碑
 
-```typescript
-// 专注历程模型
-interface FocusJourney {
-  id: number;
-  user_id: number;
-  milestone_type: 'first_pomodoro' | 'week_streak' | 'month_streak' | 'total_hours' | 'task_master';
-  milestone_value: number;
-  title: string;
-  description: string;
-  achieved_at: Date;
-  badge_icon: string;
-}
+#### 评估指标
 
-interface ProgressMetrics {
-  user_id: number;
-  focus_ability: number; // 0-100，专注能力评分
-  consistency: number; // 0-100，持续性评分
-  efficiency: number; // 0-100，效率评分
-  improvement_trend: number; // -100 to 100，进步趋势
-  total_focus_hours: number;
-  total_completed_tasks: number;
-  longest_streak_days: number;
-  current_streak_days: number;
-  updated_at: Date;
-}
+- **专注能力**: 基于单次专注时长和完成率
+- **持续性**: 基于连续使用天数和频率
+- **效率评分**: 基于任务完成率和时间利用率
+- **改进趋势**: 各项指标的变化趋势
 
-interface LearningCurve {
-  user_id: number;
-  week_number: number; // 使用应用的第几周
-  average_session_length: number; // 平均专注时长
-  completion_rate: number; // 完成率
-  break_adherence: number; // 休息遵循率
-  weekly_improvement: number; // 周改进率
-}
-```
+## 3. 用户体验设计原则
 
-## 3. Socket.IO 实时通信设计
+### 3.1 简洁性原则
 
-### 3.1 Socket.IO 连接管理
+- 界面设计简洁明了，突出核心功能
+- 减少不必要的操作步骤
+- 使用直观的图标和文字说明
 
-Socket.IO 提供了比原生 WebSocket 更强大的功能，包括自动重连、房间管理、事件命名空间等。
+### 3.2 一致性原则
 
-#### 连接建立和认证
+- 保持整个应用的设计风格一致
+- 相同功能的操作方式保持一致
+- 颜色、字体、图标使用规范统一
 
-```typescript
-// Socket.IO 连接接口
-interface SocketConnection {
-  socket_id: string;
-  user_id: number;
-  session_id: string;
-  connected_at: Date;
-  last_activity: Date;
-  room: string; // user_{user_id}
-  device_info: {
-    user_agent: string;
-    device_type: 'desktop' | 'mobile' | 'tablet';
-    platform: string;
-    app_version: string;
-  };
-}
+### 3.3 反馈性原则
 
-// Socket.IO 事件类型定义
-interface ServerToClientEvents {
-  // 计时器相关事件
-  timer_update: (data: TimerUpdateData) => void;
-  timer_complete: (data: TimerCompleteData) => void;
-  timer_tick: (data: TimerTickData) => void;
-  
-  // 任务相关事件
-  task_created: (data: TaskCreatedData) => void;
-  task_updated: (data: TaskUpdatedData) => void;
-  task_deleted: (data: TaskDeletedData) => void;
-  
-  // 成就相关事件
-  achievement_unlocked: (data: AchievementData) => void;
-  achievement_progress: (data: AchievementProgressData) => void;
-  
-  // 系统通知事件
-  notification: (data: NotificationData) => void;
-  sync_complete: (data: SyncData) => void;
-  error: (data: SocketErrorData) => void;
-  
-  // 连接状态事件
-  user_joined: (data: UserJoinedData) => void;
-  user_left: (data: UserLeftData) => void;
-}
+- 用户操作后及时提供反馈
+- 使用适当的动画和提示音
+- 错误操作时提供明确的错误信息
 
-interface ClientToServerEvents {
-  // 认证和房间管理
-  authenticate: (token: string, callback: (response: AuthResponse) => void) => void;
-  join_user_room: (userId: number) => void;
-  
-  // 计时器控制事件
-  timer_start: (data: TimerStartData, callback?: (response: TimerResponse) => void) => void;
-  timer_pause: (data: TimerPauseData) => void;
-  timer_resume: (data: TimerResumeData) => void;
-  timer_stop: (data: TimerStopData) => void;
-  timer_reset: (data: TimerResetData) => void;
-  
-  // 任务管理事件
-  task_create: (data: CreateTaskData, callback?: (response: TaskResponse) => void) => void;
-  task_update: (data: UpdateTaskData) => void;
-  task_delete: (data: DeleteTaskData) => void;
-  task_complete: (data: CompleteTaskData) => void;
-  
-  // 数据同步事件
-  request_sync: (lastSyncTime: Date) => void;
-  heartbeat: () => void;
-}
+### 3.4 可访问性原则
 
-// 计时器事件数据结构
-interface TimerUpdateData {
-  session_id: number;
-  user_id: number;
-  remaining_time: number;
-  elapsed_time: number;
-  status: 'running' | 'paused' | 'completed' | 'cancelled';
-  current_mode: 'focus' | 'short_break' | 'long_break';
-  task_id?: number;
-  pomodoro_count: number;
-  next_mode?: string;
-  auto_transition: boolean;
-}
+- 支持键盘操作
+- 提供适当的颜色对比度
+- 支持屏幕阅读器
+- 提供多语言支持
 
-interface TimerCompleteData {
-  session_id: number;
-  user_id: number;
-  session_type: 'focus' | 'short_break' | 'long_break';
-  duration: number;
-  completed_at: Date;
-  task_id?: number;
-  pomodoro_count: number;
-  next_mode: string;
-  auto_start_next: boolean;
-  achievement_unlocked?: AchievementData[];
-}
+## 4. 数据同步与离线支持
 
-interface TimerTickData {
-  session_id: number;
-  remaining_time: number;
-  elapsed_time: number;
-  progress_percentage: number;
-}
-```
+### 4.1 数据同步
 
-#### 房间管理策略
+- **单用户多设备同步**: 用户在不同设备上的数据自动保持一致
+- **实时状态同步**: 计时器状态、任务进度在所有设备间实时更新
+- **自动数据备份**: 数据变更自动保存到云端
+- **断网续传**: 网络恢复后自动同步离线期间的数据变更
 
-```typescript
-// Socket.IO 房间设计
-interface RoomStructure {
-  // 用户专属房间
-  user_rooms: {
-    [key: `user_${number}`]: {
-      user_id: number;
-      sockets: string[]; // 同一用户的多个连接
-      active_sessions: number[];
-      last_activity: Date;
-    };
-  };
-  
-  // 全局房间（可选）
-  global_rooms: {
-    'announcements': string[]; // 系统公告
-    'leaderboard': string[]; // 排行榜更新
-  };
-}
+### 4.2 离线支持
 
-// 房间管理服务
-class SocketRoomManager {
-  joinUserRoom(socketId: string, userId: number): void;
-  leaveUserRoom(socketId: string, userId: number): void;
-  broadcastToUser(userId: number, event: string, data: any): void;
-  broadcastToRoom(room: string, event: string, data: any): void;
-  getUserConnections(userId: number): string[];
-  cleanupInactiveRooms(): void;
-}
-```
+- **核心功能离线可用**: 计时器、任务管理在无网络时正常工作
+- **本地数据存储**: 离线期间的所有操作本地保存
+- **智能同步**: 连网后自动合并本地和云端数据
+- **冲突解决**: 数据冲突时优先使用最新的操作时间
 
-### 3.2 实时数据同步策略
+## 5. 性能要求
 
-#### 计时器实时同步
+### 5.1 响应性能
 
-```typescript
-// 计时器同步配置
-interface TimerSyncConfig {
-  // 同步频率
-  tick_interval: 1000; // 每秒更新一次
-  heartbeat_interval: 30000; // 30秒心跳检测
-  
-  // 同步策略
-  sync_strategies: {
-    server_authoritative: true; // 服务器时间为准
-    client_prediction: true; // 客户端预测减少延迟
-    reconciliation: true; // 时间差校正
-  };
-  
-  // 冲突解决
-  conflict_resolution: {
-    time_drift_threshold: 2000; // 2秒误差阈值
-    auto_correction: true; // 自动校正
-    user_notification: false; // 不通知用户小幅调整
-  };
-}
+- 界面操作响应时间 < 100ms
+- 页面加载时间 < 3秒
+- 数据同步延迟 < 1秒
 
-// 计时器同步逻辑
-class TimerSyncManager {
-  // 服务器端时间校准
-  synchronizeServerTime(clientTime: number, serverTime: number): number {
-    const drift = serverTime - clientTime;
-    if (Math.abs(drift) > this.config.time_drift_threshold) {
-      return serverTime; // 使用服务器时间
-    }
-    return clientTime; // 保持客户端时间
-  }
-  
-  // 处理网络延迟
-  compensateNetworkLatency(timestamp: number, rtt: number): number {
-    return timestamp + (rtt / 2);
-  }
-  
-  // 状态一致性检查
-  validateTimerState(clientState: TimerState, serverState: TimerState): boolean {
-    return clientState.session_id === serverState.session_id &&
-           Math.abs(clientState.remaining_time - serverState.remaining_time) < 2000;
-  }
-}
-```
+### 5.2 兼容性
 
-#### 任务状态同步
+- 支持主流浏览器（Chrome、Firefox、Safari、Edge）
+- 支持移动端浏览器
+- 响应式设计适配不同屏幕尺寸
 
-```typescript
-// 任务同步策略
-interface TaskSyncStrategy {
-  // 实时事件
-  real_time_events: {
-    task_created: boolean;
-    task_updated: boolean;
-    task_completed: boolean;
-    task_deleted: boolean;
-    priority_changed: boolean;
-  };
-  
-  // 批量同步
-  batch_sync: {
-    enabled: boolean;
-    interval: number; // 批量同步间隔
-    max_batch_size: number;
-  };
-  
-  // 冲突解决
-  conflict_resolution: {
-    strategy: 'last_write_wins' | 'timestamp_based' | 'user_choice';
-    merge_strategy: 'field_level' | 'object_level';
-  };
-}
+### 5.3 稳定性
 
-// 任务数据结构优化
-interface OptimizedTaskEvent {
-  event_id: string;
-  event_type: 'create' | 'update' | 'delete' | 'complete';
-  task_id: number;
-  user_id: number;
-  timestamp: Date;
-  
-  // 增量数据（仅包含变更字段）
-  delta: Partial<Task>;
-  
-  // 版本控制
-  version: number;
-  previous_version?: number;
-}
-```
+- 应用运行稳定，无频繁崩溃
+- 数据存储可靠，无数据丢失
+- 异常情况下能优雅降级
 
-#### 离线和重连同步
-
-```typescript
-// 离线支持配置
-interface OfflineSyncConfig {
-  // 离线存储
-  offline_storage: {
-    enabled: boolean;
-    max_events: number; // 最大离线事件数
-    storage_type: 'indexeddb' | 'localstorage';
-  };
-  
-  // 重连策略
-  reconnection: {
-    auto_reconnect: boolean;
-    max_attempts: number;
-    backoff_strategy: 'exponential' | 'linear' | 'fixed';
-    initial_delay: number;
-    max_delay: number;
-  };
-  
-  // 数据恢复
-  data_recovery: {
-    full_sync_on_reconnect: boolean;
-    incremental_sync: boolean;
-    conflict_resolution: boolean;
-  };
-}
-
-// 离线事件管理
-class OfflineEventManager {
-  private offlineEvents: OfflineEvent[] = [];
-  
-  // 存储离线事件
-  storeOfflineEvent(event: SocketEvent): void {
-    const offlineEvent: OfflineEvent = {
-      id: generateId(),
-      event,
-      timestamp: new Date(),
-      retry_count: 0,
-      status: 'pending'
-    };
-    
-    this.offlineEvents.push(offlineEvent);
-    this.persistToStorage();
-  }
-  
-  // 重连后同步
-  async syncOfflineEvents(socket: Socket): Promise<void> {
-    const pendingEvents = this.offlineEvents
-      .filter(e => e.status === 'pending')
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    
-    for (const offlineEvent of pendingEvents) {
-      try {
-        await this.replayEvent(socket, offlineEvent);
-        offlineEvent.status = 'synced';
-      } catch (error) {
-        offlineEvent.retry_count++;
-        if (offlineEvent.retry_count >= 3) {
-          offlineEvent.status = 'failed';
-        }
-      }
-    }
-    
-    this.persistToStorage();
-  }
-}
-```
-
-### 3.3 性能优化策略
-
-#### 事件节流和防抖
-
-```typescript
-// Socket.IO 事件优化
-class SocketEventOptimizer {
-  // 计时器更新节流（避免过于频繁的更新）
-  private throttledTimerUpdate = throttle((data: TimerUpdateData) => {
-    this.socket.emit('timer_update', data);
-  }, 1000);
-  
-  // 任务更新防抖（用户快速编辑时合并请求）
-  private debouncedTaskUpdate = debounce((data: UpdateTaskData) => {
-    this.socket.emit('task_update', data);
-  }, 500);
-  
-  // 批量事件处理
-  private eventQueue: SocketEvent[] = [];
-  private batchProcessor = setInterval(() => {
-    if (this.eventQueue.length > 0) {
-      this.processBatchEvents(this.eventQueue.splice(0));
-    }
-  }, 2000);
-}
-```
-
-#### 连接池管理
-
-```typescript
-// Socket.IO 连接池配置
-interface ConnectionPoolConfig {
-  max_connections_per_user: number; // 每用户最大连接数
-  connection_timeout: number; // 连接超时时间
-  idle_timeout: number; // 空闲连接超时
-  cleanup_interval: number; // 清理间隔
-}
-
-// 连接管理
-class SocketConnectionManager {
-  private userConnections = new Map<number, Set<string>>();
-  
-  addConnection(userId: number, socketId: string): void {
-    if (!this.userConnections.has(userId)) {
-      this.userConnections.set(userId, new Set());
-    }
-    
-    const connections = this.userConnections.get(userId)!;
-    
-    // 检查连接数限制
-    if (connections.size >= this.config.max_connections_per_user) {
-      this.closeOldestConnection(userId);
-    }
-    
-    connections.add(socketId);
-  }
-  
-  removeConnection(userId: number, socketId: string): void {
-    const connections = this.userConnections.get(userId);
-    if (connections) {
-      connections.delete(socketId);
-      if (connections.size === 0) {
-        this.userConnections.delete(userId);
-      }
-    }
-  }
-}
-```
-
-### 3.4 错误处理和监控
-
-```typescript
-// Socket.IO 错误处理
-interface SocketErrorHandler {
-  // 连接错误
-  onConnectionError(error: Error, socketId: string): void;
-  
-  // 认证错误
-  onAuthenticationError(error: AuthError, socketId: string): void;
-  
-  // 事件处理错误
-  onEventError(event: string, error: Error, data: any): void;
-  
-  // 房间操作错误
-  onRoomError(operation: string, room: string, error: Error): void;
-}
-
-// 监控指标
-interface SocketMetrics {
-  // 连接指标
-  active_connections: number;
-  connections_per_second: number;
-  average_connection_duration: number;
-  
-  // 事件指标
-  events_per_second: number;
-  event_processing_time: number;
-  failed_events: number;
-  
-  // 房间指标
-  active_rooms: number;
-  messages_per_room: number;
-  room_utilization: number;
-}
-```
-
-通过这套基于 Socket.IO 的实时通信设计，番茄时钟应用将具备：
-
-1. **可靠的实时通信**：自动重连、心跳检测、错误恢复
-2. **高效的数据同步**：增量更新、冲突解决、离线支持
-3. **优秀的用户体验**：低延迟、状态一致性、流畅交互
-4. **强大的扩展能力**：房间管理、事件命名空间、集群支持
-
-## 4. 缓存策略设计
-
-### 4.1 多层缓存架构
-
-#### 客户端缓存
-
-```typescript
-// 浏览器本地存储策略
-interface CacheStrategy {
-  localStorage: {
-    user_settings: UserSettings;
-    theme_preference: string;
-    last_sync_timestamp: Date;
-  };
-  sessionStorage: {
-    current_session: TimerSession;
-    active_tasks: Task[];
-  };
-  indexedDB: {
-    offline_stats: DailyStats[];
-    cached_achievements: Achievement[];
-  };
-}
-```
-
-#### 服务端缓存
-
-```typescript
-// Redis 缓存键值设计
-interface RedisCacheKeys {
-  user_session: `session:${user_id}`;
-  active_timer: `timer:${user_id}`;
-  daily_stats: `stats:${user_id}:${date}`;
-  user_settings: `settings:${user_id}`;
-  task_list: `tasks:${user_id}`;
-  achievement_progress: `achievements:${user_id}`;
-}
-
-// 缓存过期策略
-interface CacheExpiration {
-  user_session: '24h';
-  active_timer: '6h';
-  daily_stats: '1h';
-  user_settings: '30m';
-  task_list: '15m';
-  achievement_progress: '10m';
-}
-```
-
-### 4.2 缓存更新策略
-
-1. **写入策略（Write-Through）**
-   - 同时更新数据库和缓存
-   - 保证数据一致性
-   - 适用于关键数据
-
-2. **失效策略（Cache-Aside）**
-   - 数据更新时删除缓存
-   - 下次读取时重新加载
-   - 适用于复杂计算数据
-
-3. **定时刷新**
-   - 统计数据定时重新计算
-   - 成就进度定时更新
-   - 减少计算压力
-
-通过这套完整的功能设计，番茄时钟应用将具备现代化Web应用的所有核心特性，为用户提供流畅、可靠的时间管理体验。 
+通过这套完整的功能设计，番茄时钟应用将为用户提供一个简洁、高效、有趣的时间管理工具，帮助用户养成良好的工作和学习习惯。 

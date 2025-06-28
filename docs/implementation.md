@@ -333,6 +333,298 @@ stats:{user_id}:{date} -> {
 }
 ```
 
+## 3.5 TypeScript 类型定义
+
+为了保证前后端数据交互的类型安全，以下是应用中使用的 TypeScript 类型定义。
+
+### 3.5.1 用户相关类型
+
+```typescript
+// 用户模型
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  avatar_url?: string;
+  timezone: string;
+  settings: UserSettings;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 用户设置模型
+interface UserSettings {
+  id: number;
+  user_id: number;
+  focus_duration: number; // 25分钟 = 1500秒
+  short_break_duration: number; // 5分钟 = 300秒
+  long_break_duration: number; // 15分钟 = 900秒
+  long_break_interval: number; // 每4个番茄后长休息
+  auto_start_breaks: boolean;
+  auto_start_focus: boolean;
+  sound_enabled: boolean;
+  sound_volume: number; // 0-100
+  notifications_enabled: boolean;
+  theme: 'light' | 'dark' | 'auto';
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+### 3.5.2 计时器相关类型
+
+```typescript
+// 计时器会话模型
+interface TimerSession {
+  id: number;
+  user_id: number;
+  task_id?: number;
+  session_type: 'focus' | 'short_break' | 'long_break';
+  duration: number; // 秒数
+  completed_duration: number;
+  status: 'active' | 'paused' | 'completed' | 'cancelled';
+  started_at: Date;
+  completed_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 简化的计时器同步数据结构
+interface TimerSyncData {
+  sessionId: number;
+  remainingTime: number;
+  status: 'running' | 'paused' | 'completed';
+  currentMode: 'focus' | 'short_break' | 'long_break';
+  taskId?: number;
+  lastUpdated: string;
+}
+```
+
+### 3.5.3 任务相关类型
+
+```typescript
+// 任务模型
+interface Task {
+  id: number;
+  user_id: number;
+  title: string;
+  description?: string;
+  estimated_pomodoros: number;
+  completed_pomodoros: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'archived';
+  priority: number; // 0-5，数字越大优先级越高
+  tags: string[];
+  due_date?: Date;
+  completed_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 任务创建请求
+interface CreateTaskRequest {
+  title: string;
+  description?: string;
+  estimated_pomodoros: number;
+  priority?: number;
+  tags?: string[];
+  due_date?: Date;
+}
+
+// 任务更新请求
+interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  estimated_pomodoros?: number;
+  priority?: number;
+  tags?: string[];
+  due_date?: Date;
+  status?: 'pending' | 'in_progress' | 'completed' | 'archived';
+}
+```
+
+### 3.5.4 统计相关类型
+
+```typescript
+// 统计数据模型
+interface DailyStats {
+  date: Date;
+  user_id: number;
+  completed_pomodoros: number;
+  focus_time: number; // 总专注时间（秒）
+  completed_tasks: number;
+  break_time: number; // 总休息时间（秒）
+  efficiency_score: number; // 效率评分 0-100
+}
+
+interface WeeklyStats {
+  start_date: Date;
+  end_date: Date;
+  user_id: number;
+  total_pomodoros: number;
+  total_focus_time: number;
+  total_completed_tasks: number;
+  daily_stats: DailyStats[];
+  weekly_average: {
+    pomodoros_per_day: number;
+    focus_time_per_day: number;
+    tasks_per_day: number;
+  };
+}
+
+interface MonthlyStats {
+  year: number;
+  month: number;
+  user_id: number;
+  total_pomodoros: number;
+  total_focus_time: number;
+  total_completed_tasks: number;
+  weekly_stats: WeeklyStats[];
+  monthly_trends: {
+    pomodoro_trend: number; // 增长率 %
+    focus_time_trend: number;
+    task_completion_trend: number;
+  };
+}
+
+// 热力图数据模型
+interface HeatmapData {
+  date: string; // YYYY-MM-DD
+  pomodoros: number;
+  focus_time: number;
+  intensity: number; // 0-4，热力强度
+}
+```
+
+### 3.5.5 成就相关类型
+
+```typescript
+// 成就模型
+interface Achievement {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  type: 'daily' | 'weekly' | 'milestone' | 'streak';
+  requirement: AchievementRequirement;
+  points: number; // 成就奖励积分
+  created_at: Date;
+}
+
+interface AchievementRequirement {
+  type: 'pomodoro_count' | 'focus_time' | 'task_completion' | 'streak_days';
+  target_value: number;
+  time_period?: 'daily' | 'weekly' | 'monthly' | 'all_time';
+}
+
+interface UserAchievement {
+  id: number;
+  user_id: number;
+  achievement_id: number;
+  unlocked_at: Date;
+  achievement: Achievement;
+}
+
+// 专注技巧模型
+interface FocusTip {
+  id: number;
+  title: string;
+  content: string;
+  category: 'time_management' | 'focus_techniques' | 'productivity' | 'wellness';
+  icon: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+}
+```
+
+### 3.5.6 专注历程相关类型
+
+```typescript
+// 专注历程模型
+interface FocusJourney {
+  id: number;
+  user_id: number;
+  milestone_type: 'first_pomodoro' | 'week_streak' | 'month_streak' | 'total_hours' | 'task_master';
+  milestone_value: number;
+  title: string;
+  description: string;
+  achieved_at: Date;
+  badge_icon: string;
+}
+
+interface ProgressMetrics {
+  user_id: number;
+  focus_ability: number; // 0-100，专注能力评分
+  consistency: number; // 0-100，持续性评分
+  efficiency: number; // 0-100，效率评分
+  improvement_trend: number; // -100 to 100，进步趋势
+  total_focus_hours: number;
+  total_completed_tasks: number;
+  longest_streak_days: number;
+  current_streak_days: number;
+  updated_at: Date;
+}
+
+interface LearningCurve {
+  user_id: number;
+  week_number: number; // 使用应用的第几周
+  average_session_length: number; // 平均专注时长
+  completion_rate: number; // 完成率
+  break_adherence: number; // 休息遵循率
+  weekly_improvement: number; // 周改进率
+}
+```
+
+### 3.5.7 Socket.IO 事件类型
+
+```typescript
+// 简化的 Socket.IO 事件类型定义（仅用于单用户数据同步）
+interface ServerToClientEvents {
+  // 计时器状态同步
+  timer_sync: (data: TimerSyncData) => void;
+  
+  // 任务数据同步
+  task_sync: (data: TaskSyncData) => void;
+  
+  // 成就通知
+  achievement_unlocked: (data: AchievementData) => void;
+  
+  // 连接状态
+  connected: () => void;
+  error: (data: { message: string }) => void;
+}
+
+interface ClientToServerEvents {
+  // 数据同步请求
+  sync_request: () => void;
+  
+  // 心跳检测
+  ping: () => void;
+}
+
+// 简化的数据同步结构
+interface TimerSyncData {
+  sessionId: number;
+  remainingTime: number;
+  status: 'running' | 'paused' | 'completed';
+  currentMode: 'focus' | 'short_break' | 'long_break';
+  taskId?: number;
+  lastUpdated: string;
+}
+
+interface TaskSyncData {
+  action: 'created' | 'updated' | 'deleted';
+  task: Task;
+  lastUpdated: string;
+}
+
+interface AchievementData {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  unlockedAt: string;
+}
+```
+
 ## 4. API 接口设计
 
 ### 4.1 RESTful API 规范
@@ -421,9 +713,34 @@ PUT    /api/v1/settings          # 更新用户设置
 }
 ```
 
-### 4.3 Socket.IO 实时通信
+### 4.3 Socket.IO 实时数据同步
 
-Socket.IO 提供了可靠的实时双向通信，支持自动重连、房间管理和事件驱动的消息传递。
+Socket.IO 用于单用户场景下的数据自动同步，确保多设备间的数据一致性。
+
+#### 设计说明
+
+本实现采用简化的单用户数据同步设计，具有以下特点：
+
+**设计原则：**
+- **专注核心功能**: 仅实现数据同步，避免过度设计
+- **单用户场景**: 不支持用户间通信，无需复杂的房间管理
+- **简单可靠**: 减少复杂性，提高系统稳定性
+- **高效同步**: 按需同步，避免不必要的数据传输
+
+**简化内容：**
+- ❌ 移除多用户房间管理系统
+- ❌ 移除复杂的连接池管理
+- ❌ 移除用户间通信功能  
+- ❌ 移除复杂的事件广播机制
+- ✅ 保留核心数据同步功能
+- ✅ 保留自动重连和错误处理
+- ✅ 保留心跳检测机制
+
+**同步策略：**
+- 客户端连接时请求完整数据同步
+- 服务端数据变更时主动推送更新
+- 支持按需同步请求
+- 简化的冲突解决机制
 
 #### 前端 Socket.IO 配置
 
@@ -431,43 +748,47 @@ Socket.IO 提供了可靠的实时双向通信，支持自动重连、房间管�
 // lib/socket.ts
 import { io, Socket } from 'socket.io-client';
 
+// 简化的事件接口
 export interface ServerToClientEvents {
-  timer_update: (data: TimerUpdateData) => void;
-  timer_complete: (data: TimerCompleteData) => void;
-  task_update: (data: TaskUpdateData) => void;
+  timer_sync: (data: TimerSyncData) => void;
+  task_sync: (data: TaskSyncData) => void;
   achievement_unlocked: (data: AchievementData) => void;
-  user_joined: (data: UserJoinData) => void;
-  error: (data: ErrorData) => void;
+  connected: () => void;
+  error: (data: { message: string }) => void;
 }
 
 export interface ClientToServerEvents {
-  join_user: (userId: string) => void;
-  timer_start: (data: TimerStartData) => void;
-  timer_pause: (data: TimerPauseData) => void;
-  timer_stop: (data: TimerStopData) => void;
-  task_create: (data: CreateTaskData) => void;
-  task_update: (data: UpdateTaskData) => void;
+  sync_request: () => void;
+  ping: () => void;
 }
 
-export interface TimerUpdateData {
+// 简化的数据类型
+export interface TimerSyncData {
   sessionId: number;
   remainingTime: number;
   status: 'running' | 'paused' | 'completed';
   currentMode: 'focus' | 'short_break' | 'long_break';
   taskId?: number;
+  lastUpdated: string;
 }
 
-export interface TimerCompleteData {
-  sessionId: number;
-  sessionType: string;
-  completedAt: string;
-  nextMode: string;
-  pomodoroCount: number;
+export interface TaskSyncData {
+  action: 'created' | 'updated' | 'deleted';
+  task: any; // 使用 Task 类型
+  lastUpdated: string;
 }
 
-class SocketManager {
+export interface AchievementData {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  unlockedAt: string;
+}
+
+// 简化的 Socket 管理器
+class SimpleSocketManager {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
-  private userId: string | null = null;
 
   connect(token: string): Socket<ServerToClientEvents, ClientToServerEvents> {
     if (this.socket?.connected) {
@@ -475,14 +796,12 @@ class SocketManager {
     }
 
     this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080', {
-      auth: {
-        token,
-      },
+      auth: { token },
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
-      timeout: 20000,
+      timeout: 10000,
     });
 
     this.setupEventListeners();
@@ -493,26 +812,16 @@ class SocketManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Socket.IO connected:', this.socket?.id);
-      if (this.userId) {
-        this.socket?.emit('join_user', this.userId);
-      }
+      console.log('Socket connected');
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Socket.IO disconnected:', reason);
+      console.log('Socket disconnected:', reason);
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Socket.IO connection error:', error);
+      console.error('Socket connection error:', error);
     });
-  }
-
-  joinUser(userId: string) {
-    this.userId = userId;
-    if (this.socket?.connected) {
-      this.socket.emit('join_user', userId);
-    }
   }
 
   disconnect() {
@@ -522,88 +831,92 @@ class SocketManager {
     }
   }
 
+  requestSync() {
+    if (this.socket?.connected) {
+      this.socket.emit('sync_request');
+    }
+  }
+
   getSocket() {
     return this.socket;
   }
 }
 
-export const socketManager = new SocketManager();
+export const socketManager = new SimpleSocketManager();
 ```
 
-#### 前端 Socket.IO Hook
+#### 简化的前端 Socket Hook
 
 ```typescript
 // hooks/useSocket.ts
 import { useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
-import { socketManager, ServerToClientEvents, ClientToServerEvents } from '@/lib/socket';
+import { 
+  socketManager, 
+  ServerToClientEvents, 
+  ClientToServerEvents,
+  TimerSyncData,
+  TaskSyncData,
+  AchievementData
+} from '@/lib/socket';
 import { useAuthStore } from '@/store/authStore';
 
 export const useSocket = () => {
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<any>(null);
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
 
   useEffect(() => {
-    if (token && user) {
+    if (token) {
       socketRef.current = socketManager.connect(token);
-      
       const socket = socketRef.current;
 
       socket.on('connect', () => {
         setIsConnected(true);
-        socketManager.joinUser(user.id.toString());
       });
 
       socket.on('disconnect', () => {
         setIsConnected(false);
       });
 
-      // 监听所有事件
-      socket.on('timer_update', (data) => {
-        setLastMessage({ type: 'timer_update', data });
-      });
-
-      socket.on('timer_complete', (data) => {
-        setLastMessage({ type: 'timer_complete', data });
-      });
-
-      socket.on('task_update', (data) => {
-        setLastMessage({ type: 'task_update', data });
-      });
-
-      socket.on('achievement_unlocked', (data) => {
-        setLastMessage({ type: 'achievement_unlocked', data });
-      });
-
       return () => {
         socket.off('connect');
         socket.off('disconnect');
-        socket.off('timer_update');
-        socket.off('timer_complete');
-        socket.off('task_update');
-        socket.off('achievement_unlocked');
       };
     }
-  }, [token, user]);
+  }, [token]);
 
-  const emit = (event: keyof ClientToServerEvents, data: any) => {
-    if (socketRef.current?.connected) {
-      (socketRef.current as any).emit(event, data);
-    }
+  // 数据同步监听器
+  const onTimerSync = (callback: (data: TimerSyncData) => void) => {
+    socketRef.current?.on('timer_sync', callback);
+    return () => socketRef.current?.off('timer_sync', callback);
+  };
+
+  const onTaskSync = (callback: (data: TaskSyncData) => void) => {
+    socketRef.current?.on('task_sync', callback);
+    return () => socketRef.current?.off('task_sync', callback);
+  };
+
+  const onAchievementUnlocked = (callback: (data: AchievementData) => void) => {
+    socketRef.current?.on('achievement_unlocked', callback);
+    return () => socketRef.current?.off('achievement_unlocked', callback);
+  };
+
+  const requestSync = () => {
+    socketManager.requestSync();
   };
 
   return {
-    socket: socketRef.current,
     isConnected,
-    lastMessage,
-    emit,
+    onTimerSync,
+    onTaskSync,
+    onAchievementUnlocked,
+    requestSync,
   };
 };
 ```
 
-#### 后端 Socket.IO 服务器配置
+#### 简化的后端 Socket.IO 服务器
 
 ```go
 // internal/socket/server.go
@@ -612,6 +925,7 @@ package socket
 import (
     "log"
     "net/http"
+    "encoding/json"
     
     socketio "github.com/googollee/go-socket.io"
     "github.com/googollee/go-socket.io/engineio"
@@ -620,16 +934,15 @@ import (
     "github.com/googollee/go-socket.io/engineio/transport/websocket"
 )
 
-type Server struct {
+// 简化的服务器结构
+type SimpleSocketServer struct {
     socketServer *socketio.Server
-    userRooms    map[string]string // socket.id -> user_id
-    roomUsers    map[string][]string // user_id -> []socket.id
+    userSockets  map[string]string // socket.id -> user_id
 }
 
-func NewSocketServer() *Server {
-    server := &Server{
-        userRooms: make(map[string]string),
-        roomUsers: make(map[string][]string),
+func NewSimpleSocketServer() *SimpleSocketServer {
+    server := &SimpleSocketServer{
+        userSockets: make(map[string]string),
     }
 
     // 创建 Socket.IO 服务器
@@ -637,7 +950,7 @@ func NewSocketServer() *Server {
         Transports: []transport.Transport{
             &polling.Transport{
                 CheckOrigin: func(r *http.Request) bool {
-                    return true // 生产环境需要严格检查
+                    return true
                 },
             },
             &websocket.Transport{
@@ -654,28 +967,27 @@ func NewSocketServer() *Server {
     return server
 }
 
-func (s *Server) setupEvents() {
+func (s *SimpleSocketServer) setupEvents() {
     // 连接事件
     s.socketServer.OnConnect("/", func(conn socketio.Conn) error {
         log.Printf("Socket connected: %s", conn.ID())
         
-        // 验证认证令牌
+        // 简单的认证检查
         token := conn.URL().Query().Get("token")
         if token == "" {
-            log.Printf("No token provided for socket: %s", conn.ID())
             return fmt.Errorf("authentication required")
         }
         
-        // 验证 JWT 令牌
         userID, err := validateJWTToken(token)
         if err != nil {
-            log.Printf("Invalid token for socket: %s", conn.ID())
             return err
         }
         
-        // 存储用户连接映射
-        s.userRooms[conn.ID()] = userID
-        s.roomUsers[userID] = append(s.roomUsers[userID], conn.ID())
+        // 存储用户连接
+        s.userSockets[conn.ID()] = userID
+        
+        // 发送连接确认
+        conn.Emit("connected")
         
         return nil
     })
@@ -683,73 +995,21 @@ func (s *Server) setupEvents() {
     // 断开连接事件
     s.socketServer.OnDisconnect("/", func(conn socketio.Conn, reason string) {
         log.Printf("Socket disconnected: %s, reason: %s", conn.ID(), reason)
-        
-        if userID, exists := s.userRooms[conn.ID()]; exists {
-            // 从房间中移除用户
-            s.removeUserConnection(userID, conn.ID())
-            delete(s.userRooms, conn.ID())
-        }
+        delete(s.userSockets, conn.ID())
     })
 
-    // 用户加入房间
-    s.socketServer.OnEvent("/", "join_user", func(conn socketio.Conn, userID string) {
-        log.Printf("User %s joined room via socket %s", userID, conn.ID())
+    // 数据同步请求
+    s.socketServer.OnEvent("/", "sync_request", func(conn socketio.Conn) {
+        userID := s.userSockets[conn.ID()]
+        log.Printf("Sync request from user %s", userID)
         
-        // 加入用户专属房间
-        conn.Join(fmt.Sprintf("user_%s", userID))
-        
-        // 通知其他用户
-        conn.Emit("user_joined", map[string]interface{}{
-            "userId":    userID,
-            "timestamp": time.Now(),
-        })
+        // 获取最新数据并发送
+        s.sendCurrentData(conn, userID)
     })
 
-    // 计时器事件
-    s.socketServer.OnEvent("/", "timer_start", func(conn socketio.Conn, data TimerStartData) {
-        userID := s.userRooms[conn.ID()]
-        log.Printf("Timer start event from user %s", userID)
-        
-        // 处理计时器开始逻辑
-        // 这里会调用计时器服务
-        
-        // 广播到用户房间
-        s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), "timer_update", map[string]interface{}{
-            "sessionId":     data.SessionID,
-            "status":        "running",
-            "remainingTime": data.Duration,
-            "currentMode":   data.Mode,
-            "taskId":        data.TaskID,
-        })
-    })
-
-    // 计时器暂停事件
-    s.socketServer.OnEvent("/", "timer_pause", func(conn socketio.Conn, data TimerPauseData) {
-        userID := s.userRooms[conn.ID()]
-        log.Printf("Timer pause event from user %s", userID)
-        
-        // 处理计时器暂停逻辑
-        
-        // 广播更新
-        s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), "timer_update", map[string]interface{}{
-            "sessionId":     data.SessionID,
-            "status":        "paused",
-            "remainingTime": data.RemainingTime,
-        })
-    })
-
-    // 任务创建事件
-    s.socketServer.OnEvent("/", "task_create", func(conn socketio.Conn, data CreateTaskData) {
-        userID := s.userRooms[conn.ID()]
-        log.Printf("Task create event from user %s", userID)
-        
-        // 处理任务创建逻辑
-        
-        // 广播到用户房间
-        s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), "task_update", map[string]interface{}{
-            "action": "created",
-            "task":   data,
-        })
+    // 心跳检测
+    s.socketServer.OnEvent("/", "ping", func(conn socketio.Conn) {
+        conn.Emit("pong")
     })
 
     // 错误处理
@@ -758,115 +1018,74 @@ func (s *Server) setupEvents() {
     })
 }
 
-func (s *Server) removeUserConnection(userID, socketID string) {
-    if connections, exists := s.roomUsers[userID]; exists {
-        for i, id := range connections {
-            if id == socketID {
-                s.roomUsers[userID] = append(connections[:i], connections[i+1:]...)
-                break
-            }
-        }
-        
-        // 如果用户没有其他连接，清理房间
-        if len(s.roomUsers[userID]) == 0 {
-            delete(s.roomUsers, userID)
+// 发送当前数据状态
+func (s *SimpleSocketServer) sendCurrentData(conn socketio.Conn, userID string) {
+    // 发送计时器状态
+    if timerData := s.getCurrentTimerState(userID); timerData != nil {
+        conn.Emit("timer_sync", timerData)
+    }
+    
+    // 发送任务数据（如果有更新）
+    if taskUpdates := s.getRecentTaskUpdates(userID); len(taskUpdates) > 0 {
+        for _, update := range taskUpdates {
+            conn.Emit("task_sync", update)
         }
     }
 }
 
-// 广播给特定用户
-func (s *Server) BroadcastToUser(userID string, event string, data interface{}) {
-    s.socketServer.BroadcastToRoom("/", fmt.Sprintf("user_%s", userID), event, data)
+// 广播给用户的所有连接
+func (s *SimpleSocketServer) BroadcastToUser(userID string, event string, data interface{}) {
+    for socketID, uid := range s.userSockets {
+        if uid == userID {
+            if conn := s.socketServer.GetConnection(socketID); conn != nil {
+                conn.Emit(event, data)
+            }
+        }
+    }
 }
 
-// 获取 Socket.IO 服务器实例
-func (s *Server) GetServer() *socketio.Server {
+// 获取服务器实例
+func (s *SimpleSocketServer) GetServer() *socketio.Server {
     return s.socketServer
 }
-```
 
-#### Socket.IO 事件类型定义
-
-```go
-// internal/models/socket_event.go
-package models
-
-import "time"
-
-type TimerStartData struct {
-    SessionID int    `json:"session_id"`
-    Duration  int    `json:"duration"`
-    Mode      string `json:"mode"`
-    TaskID    *int   `json:"task_id,omitempty"`
+// 辅助方法（需要实现）
+func (s *SimpleSocketServer) getCurrentTimerState(userID string) interface{} {
+    // 从数据库或缓存获取当前计时器状态
+    // 示例实现
+    timerData := TimerSyncData{
+        SessionID:     1,
+        RemainingTime: 1500,
+        Status:        "running",
+        CurrentMode:   "focus",
+        TaskID:        nil,
+        LastUpdated:   time.Now().Format(time.RFC3339),
+    }
+    return timerData
 }
 
-type TimerPauseData struct {
-    SessionID     int `json:"session_id"`
-    RemainingTime int `json:"remaining_time"`
-}
-
-type TimerStopData struct {
-    SessionID int `json:"session_id"`
-}
-
-type CreateTaskData struct {
-    Title              string    `json:"title"`
-    Description        string    `json:"description,omitempty"`
-    EstimatedPomodoros int       `json:"estimated_pomodoros"`
-    Priority           int       `json:"priority"`
-    Tags               []string  `json:"tags,omitempty"`
-    DueDate            *time.Time `json:"due_date,omitempty"`
-}
-
-type UpdateTaskData struct {
-    ID                 int       `json:"id"`
-    Title              *string   `json:"title,omitempty"`
-    Description        *string   `json:"description,omitempty"`
-    EstimatedPomodoros *int      `json:"estimated_pomodoros,omitempty"`
-    CompletedPomodoros *int      `json:"completed_pomodoros,omitempty"`
-    Status             *string   `json:"status,omitempty"`
-    Priority           *int      `json:"priority,omitempty"`
-    Tags               []string  `json:"tags,omitempty"`
-    DueDate            *time.Time `json:"due_date,omitempty"`
-}
-
-type AchievementUnlockedData struct {
-    AchievementID int       `json:"achievement_id"`
-    Name          string    `json:"name"`
-    Description   string    `json:"description"`
-    Icon          string    `json:"icon"`
-    UnlockedAt    time.Time `json:"unlocked_at"`
-}
-```
-
-#### Gin 路由集成
-
-```go
-// cmd/server/main.go
-package main
-
-import (
-    "log"
-    "net/http"
+func (s *SimpleSocketServer) getRecentTaskUpdates(userID string) []interface{} {
+    // 获取最近的任务更新
+    // 示例：返回最近5分钟内的任务变更
+    var updates []interface{}
     
-    "github.com/gin-gonic/gin"
-    "your-project/internal/socket"
-)
+    // 这里应该查询数据库获取最近的任务变更
+    // updates = append(updates, TaskSyncData{
+    //     Action:      "updated",
+    //     Task:        task,
+    //     LastUpdated: time.Now().Format(time.RFC3339),
+    // })
+    
+    return updates
+}
 
-func main() {
-    r := gin.Default()
-    
-    // 创建 Socket.IO 服务器
-    socketServer := socket.NewSocketServer()
-    
-    // Socket.IO 路由
-    r.GET("/socket.io/", gin.WrapH(socketServer.GetServer()))
-    r.POST("/socket.io/", gin.WrapH(socketServer.GetServer()))
-    
-    // 其他 API 路由...
-    
-    log.Println("Server starting on :8080")
-    log.Fatal(http.ListenAndServe(":8080", r))
+// 主动推送数据更新给用户
+func (s *SimpleSocketServer) NotifyTimerUpdate(userID string, timerData TimerSyncData) {
+    s.BroadcastToUser(userID, "timer_sync", timerData)
+}
+
+func (s *SimpleSocketServer) NotifyTaskUpdate(userID string, taskData TaskSyncData) {
+    s.BroadcastToUser(userID, "task_sync", taskData)
 }
 ```
 
@@ -1485,7 +1704,7 @@ docker-compose ps
 docker-compose logs caddy
 
 # 重新加载 Caddy 配置
-docker-compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+docker-compose exec caddy caddy reload --config /etc/caddy/Caddyfile.dev
 ```
 
 #### 使用 Nginx 作为反向代理（备选方案）
