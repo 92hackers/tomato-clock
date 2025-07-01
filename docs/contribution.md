@@ -34,7 +34,7 @@ git remote add upstream https://github.com/原项目/tomato-clock.git
 ```bash
 # 安装前端依赖
 cd frontend
-npm install
+pnpm install
 
 # 安装后端依赖
 cd ../backend
@@ -159,7 +159,7 @@ go test ./... -v
 
 # 前端测试
 cd frontend
-npm test -- --watch
+pnpm test -- --watch
 ```
 
 3. 实现功能 (Green)
@@ -491,17 +491,17 @@ git push origin feature/your-feature-name
 1. **单元测试**
    ```bash
    cd frontend
-   npm run test
+   pnpm run test
    ```
 
 2. **集成测试**
    ```bash
-   npm run test:integration
+   pnpm run test:integration
    ```
 
 3. **E2E 测试**
    ```bash
-   npm run test:e2e
+   pnpm run test:e2e
    ```
 
 ### 后端测试

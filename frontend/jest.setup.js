@@ -1,25 +1,49 @@
-import 'whatwg-fetch';
 import '@testing-library/jest-dom';
 
-// MSW (Mock Service Worker) 设置 - 临时禁用
-// import { server } from './src/__mocks__/server';
+// Mock Next.js router
+jest.mock('next/router', () => ({
+  useRouter() {
+    return {
+      route: '/',
+      pathname: '/',
+      query: {},
+      asPath: '/',
+      push: jest.fn(),
+      pop: jest.fn(),
+      reload: jest.fn(),
+      back: jest.fn(),
+      prefetch: jest.fn(),
+      beforePopState: jest.fn(),
+      events: {
+        on: jest.fn(),
+        off: jest.fn(),
+        emit: jest.fn(),
+      },
+    };
+  },
+}));
 
-// 在所有测试之前启动MSW服务器
-// beforeAll(() => {
-//   server.listen();
-// });
+// Mock Next.js navigation (App Router)
+jest.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      replace: jest.fn(),
+      refresh: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+      prefetch: jest.fn(),
+    };
+  },
+  useSearchParams() {
+    return new URLSearchParams();
+  },
+  usePathname() {
+    return '/';
+  },
+}));
 
-// 在每个测试之后重置handlers
-// afterEach(() => {
-//   server.resetHandlers();
-// });
-
-// 在所有测试完成后关闭MSW服务器
-// afterAll(() => {
-//   server.close();
-// });
-
-// 全局测试助手
+// Global test setup
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
@@ -49,4 +73,4 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
 }));
 
 // 设置测试超时时间
-jest.setTimeout(10000); 
+jest.setTimeout(10000);

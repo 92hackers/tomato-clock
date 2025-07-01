@@ -427,12 +427,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - name: Install dependencies
-        run: cd frontend && npm ci
-      - name: Run unit tests
-        run: cd frontend && npm run test:unit
-      - name: Run integration tests
-        run: cd frontend && npm run test:integration
+      - name: 安装依赖
+        run: cd frontend && pnpm ci
+      - name: 运行前端单元测试
+        run: cd frontend && pnpm run test:unit
+      - name: 运行前端集成测试
+        run: cd frontend && pnpm run test:integration
       - name: Upload coverage
         uses: codecov/codecov-action@v3
 
@@ -476,7 +476,7 @@ jobs:
       - name: Setup Docker Compose
         run: docker-compose up -d
       - name: Run E2E tests
-        run: cd frontend && npm run test:e2e
+        run: cd frontend && pnpm run test:e2e
       - name: Upload test results
         uses: actions/upload-artifact@v3
         if: always()

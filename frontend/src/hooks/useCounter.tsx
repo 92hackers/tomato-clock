@@ -34,4 +34,4 @@ export const useCounter = (initialValue: number = 0): UseCounterReturn => {
     reset,
     setValue,
   };
-}; 
+};

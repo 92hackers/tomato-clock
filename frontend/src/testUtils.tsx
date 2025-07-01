@@ -4,11 +4,7 @@ import { ReactElement } from 'react';
 
 // 自定义测试Provider组件
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div data-testid="test-wrapper">
-      {children}
-    </div>
-  );
+  return <div data-testid='test-wrapper'>{children}</div>;
 };
 
 // 自定义render函数
@@ -63,12 +59,12 @@ export const mockUserEvent = {
     const { fireEvent } = await import('@testing-library/react');
     fireEvent.click(element);
   },
-  
+
   type: async (element: HTMLElement, text: string) => {
     const { fireEvent } = await import('@testing-library/react');
     fireEvent.change(element, { target: { value: text } });
   },
-  
+
   submit: async (form: HTMLElement) => {
     const { fireEvent } = await import('@testing-library/react');
     fireEvent.submit(form);
@@ -82,15 +78,15 @@ export const expectElement = {
   toBeInDocument: (element: HTMLElement | null) => {
     expect(element).toBeInTheDocument();
   },
-  
+
   toHaveText: (element: HTMLElement | null, text: string) => {
     expect(element).toHaveTextContent(text);
   },
-  
+
   toBeVisible: (element: HTMLElement | null) => {
     expect(element).toBeVisible();
   },
-  
+
   toBeDisabled: (element: HTMLElement | null) => {
     expect(element).toBeDisabled();
   },
@@ -101,16 +97,16 @@ export const expectElement = {
  */
 export const mockConsole = () => {
   const originalConsole = { ...console };
-  
+
   beforeEach(() => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
-  
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
-  
+
   return originalConsole;
-}; 
+};

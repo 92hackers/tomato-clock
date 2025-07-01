@@ -20,18 +20,14 @@ export const Button: React.FC<ButtonProps> = ({
   const baseClasses = 'btn';
   const variantClass = `btn-${variant}`;
   const sizeClass = `btn-${size}`;
-  
+
   const allClasses = [baseClasses, variantClass, sizeClass, className]
     .filter(Boolean)
     .join(' ');
 
   return (
-    <button
-      className={allClasses}
-      onClick={onClick}
-      disabled={disabled}
-    >
+    <button className={allClasses} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );
-}; 
+};

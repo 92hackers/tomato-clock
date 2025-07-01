@@ -1,0 +1,41 @@
+run:
+  timeout: 5m
+  skip-dirs:
+    - vendor
+    - tests
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - revive
+    - ineffassign
+    - staticcheck
+    - unused
+    - errcheck
+    - typecheck
+    - gosimple
+    - bodyclose
+    - stylecheck
+    - gocyclo
+
+linters-settings:
+  gofmt:
+    simplify: true
+  gocyclo:
+    min-complexity: 15
+  revive:
+    rules:
+      - name: unexported-return
+        disabled: true
+      - name: unused-parameter
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec 

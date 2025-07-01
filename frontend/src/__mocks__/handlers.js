@@ -31,12 +31,15 @@ export const handlers = [
   // 创建新任务
   http.post('/api/tasks', async ({ request }) => {
     const newTask = await request.json();
-    return HttpResponse.json({
-      id: Date.now(),
-      ...newTask,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    }, { status: 201 });
+    return HttpResponse.json(
+      {
+        id: Date.now(),
+        ...newTask,
+        completed: false,
+        createdAt: new Date().toISOString(),
+      },
+      { status: 201 }
+    );
   }),
 
   // 更新任务
@@ -53,8 +56,8 @@ export const handlers = [
   // 删除任务
   http.delete('/api/tasks/:id', ({ params }) => {
     const { id } = params;
-    return HttpResponse.json({ 
-      message: `Task ${id} deleted successfully` 
+    return HttpResponse.json({
+      message: `Task ${id} deleted successfully`,
     });
   }),
 
@@ -102,4 +105,4 @@ export const handlers = [
       { status: 500 }
     );
   }),
-]; 
+];

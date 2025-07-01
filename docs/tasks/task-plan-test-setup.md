@@ -128,7 +128,7 @@
 - [ ] 模拟对象 (testify/mock) 正常工作
 
 ### 前端测试环境
-- [ ] Jest测试运行器正常：`npm test`
+- [ ] Jest测试运行器正常：`pnpm test`
 - [ ] React Testing Library组件测试可用
 - [ ] MSW API模拟正常工作
 - [ ] 测试覆盖率报告生成正常
