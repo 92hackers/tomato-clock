@@ -1,194 +1,198 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTimerStore } from '../store/timerStore';
+import { formatDuration } from '../utils/timeFormatter';
 import type { TimerMode } from '../types/timer';
-import { formatTime, calculateProgress } from '../utils/timeFormatter';
 
 /**
  * Custom hook for timer functionality
  * Provides a clean interface for timer operations and computed values
  */
-export const useTimer = () => {
+export function useTimer() {
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const {
-    // State
+    timeLeft,
     currentMode,
-    status,
-    remainingTime,
-    duration,
-    currentSessionId,
-    sessionsCompleted,
-    settings,
-    currentTask,
+    isRunning,
+    isPaused,
+    isCompleted,
+    currentSession,
+    sessionsUntilLongBreak,
+    completedCycles,
+    todayPomodoros,
     todayWorkTime,
-    todayCompletedSessions,
-
-    // Actions
+    settings,
     startTimer,
     pauseTimer,
     resetTimer,
-    completeSession,
+    completeTimer,
     switchMode,
     updateSettings,
-    loadFromStorage,
-    saveToStorage,
+    setState,
+    getCurrentProgress,
   } = useTimerStore();
 
-  // Load data from storage on mount
+  // Timer countdown effect
   useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        const currentTimeLeft = useTimerStore.getState().timeLeft;
+        
+        if (currentTimeLeft <= 1) {
+          // Timer completed
+          useTimerStore.getState().completeTimer();
+        } else {
+          // Decrement time
+          useTimerStore.getState().setState({ timeLeft: currentTimeLeft - 1 });
+        }
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
 
-  // Auto-save periodically
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isRunning, timeLeft]);
+
+  // Cleanup on unmount
   useEffect(() => {
-    const interval = setInterval(() => {
-      saveToStorage();
-    }, 30000); // Save every 30 seconds
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [saveToStorage]);
-
-  // Computed values
-  const formattedTime = formatTime(remainingTime);
-  const progress = calculateProgress(duration - remainingTime, duration);
-  const isRunning = status === 'running';
-  const isPaused = status === 'paused';
-  const isIdle = status === 'idle';
-  const isCompleted = status === 'completed';
+  // Derived state
+  const isIdle = !isRunning && !isPaused && !isCompleted;
+  const currentCycleProgress = getCurrentProgress();
 
   // Mode-specific information
   const modeInfo = {
     work: {
-      label: '专注',
+      label: '专注工作',
       duration: settings.workDuration,
-      color: 'orange',
-      description: '专注工作时间',
+      color: '#FF9500',
+      description: '专注完成当前任务',
     },
     shortBreak: {
       label: '短休息',
       duration: settings.shortBreakDuration,
-      color: 'green',
-      description: '短暂休息时间',
+      color: '#34C759',
+      description: '短暂休息，恢复精力',
     },
     longBreak: {
       label: '长休息',
       duration: settings.longBreakDuration,
-      color: 'blue',
-      description: '长时间休息',
+      color: '#007AFF',
+      description: '长时间休息，彻底放松',
     },
   };
 
   const currentModeInfo = modeInfo[currentMode];
 
-  // Timer control functions with better UX
-  const handleStart = useCallback(() => {
+  // Timer control functions
+  const handleStart = () => {
     if (isCompleted) {
-      // If completed, start a new session
+      // If completed, reset and start new session
       resetTimer();
-      setTimeout(startTimer, 100);
+      setTimeout(() => startTimer(), 100);
     } else {
       startTimer();
     }
-  }, [isCompleted, resetTimer, startTimer]);
+  };
 
-  const handlePause = useCallback(() => {
+  const handlePause = () => {
     pauseTimer();
-  }, [pauseTimer]);
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     resetTimer();
-  }, [resetTimer]);
+  };
 
-  const handleModeSwitch = useCallback(
-    (mode: TimerMode) => {
+  const handleModeSwitch = (mode: TimerMode) => {
+    if (!isRunning) {
       switchMode(mode);
-    },
-    [switchMode],
-  );
+    }
+  };
 
   // Auto-suggest next mode based on session count
   const suggestedNextMode = (): TimerMode => {
     if (currentMode === 'work') {
-      const workSessionsInCycle = sessionsCompleted % settings.sessionsUntilLongBreak;
-      return workSessionsInCycle === settings.sessionsUntilLongBreak - 1
-        ? 'longBreak'
-        : 'shortBreak';
+      return currentSession >= settings.sessionsUntilLongBreak ? 'longBreak' : 'shortBreak';
     }
     return 'work';
   };
 
   // Notification helpers
-  const shouldShowNotification = (): boolean => {
+  const shouldShowNotification = () => {
     return settings.notificationsEnabled && isCompleted;
   };
 
-  const getNotificationMessage = (): string => {
-    switch (currentMode) {
-      case 'work':
-        return '专注时间结束！该休息一下了。';
-      case 'shortBreak':
-        return '短休息结束！准备开始下一个专注时段。';
-      case 'longBreak':
-        return '长休息结束！精力充沛地开始新的专注周期吧！';
-      default:
-        return '时间到！';
+  const getNotificationMessage = () => {
+    if (currentMode === 'work') {
+      return '专注时间结束！是时候休息一下了。';
     }
+    return '休息时间结束！准备开始下一个专注时间。';
   };
 
   // Session statistics
   const sessionStats = {
-    todayPomodoros: todayCompletedSessions,
-    todayWorkTime: todayWorkTime,
-    currentSessionProgress: progress,
-    totalSessions: sessionsCompleted,
-    currentCycleProgress: (sessionsCompleted % settings.sessionsUntilLongBreak) + 1,
-    sessionsUntilLongBreak: settings.sessionsUntilLongBreak,
+    todayPomodoros,
+    todayWorkTime,
+    currentSessionProgress: currentCycleProgress,
+    totalSessions: completedCycles,
+    currentCycleProgress,
+    sessionsUntilLongBreak,
   };
 
   return {
     // Timer state
+    timeLeft,
     currentMode,
-    status,
-    remainingTime,
-    duration,
-    formattedTime,
-    progress,
-    currentSessionId,
+    isRunning,
+    isPaused,
+    isIdle,
+    isCompleted,
+    
+    // Session tracking
+    currentSession,
+    sessionsUntilLongBreak,
+    completedCycles,
+    currentCycleProgress,
+    
+    // Statistics
+    todayPomodoros,
+    todayWorkTime,
+    sessionStats,
+    
+    // Settings
+    settings,
+    
+    // Actions
+    startTimer: handleStart,
+    pauseTimer: handlePause,
+    resetTimer: handleReset,
+    completeTimer,
+    switchMode: handleModeSwitch,
+    updateSettings,
 
     // Mode information
     currentModeInfo,
     modeInfo,
 
-    // Status checks
-    isRunning,
-    isPaused,
-    isIdle,
-    isCompleted,
-
-    // Timer controls
-    start: handleStart,
-    pause: handlePause,
-    reset: handleReset,
-    complete: completeSession,
-    switchMode: handleModeSwitch,
-
-    // Settings
-    settings,
-    updateSettings,
-
-    // Current task
-    currentTask,
-
-    // Statistics
-    sessionStats,
-
     // Utilities
     suggestedNextMode,
     shouldShowNotification,
     getNotificationMessage,
-
-    // Storage
-    loadFromStorage,
-    saveToStorage,
   };
-};
+}
 
 export default useTimer;

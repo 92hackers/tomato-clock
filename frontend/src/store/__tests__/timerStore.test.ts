@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { useTimerStore } from '../timerStore';
 
 // Mock localStorage
@@ -11,32 +12,20 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
-describe('TimerStore', () => {
+describe('TimerStore (New Architecture)', () => {
   beforeEach(() => {
-    // Reset the store state before each test
+    // Reset store before each test
     useTimerStore.setState({
+      timeLeft: 25 * 60,
       currentMode: 'work',
-      status: 'idle',
-      remainingTime: 1500,
-      duration: 1500,
-      currentSessionId: null,
-      sessionsCompleted: 0,
-      settings: {
-        workDuration: 1500,
-        shortBreakDuration: 300,
-        longBreakDuration: 900,
-        sessionsUntilLongBreak: 4,
-        autoStartBreaks: false,
-        autoStartWork: false,
-        soundEnabled: true,
-        notificationsEnabled: true,
-      },
-      completedSessions: [],
-      currentTask: null,
-      tasks: [],
+      isRunning: false,
+      isPaused: false,
+      isCompleted: false,
+      currentSession: 1,
+      sessionsUntilLongBreak: 4,
+      completedCycles: 0,
+      todayPomodoros: 0,
       todayWorkTime: 0,
-      totalWorkTime: 0,
-      todayCompletedSessions: 0,
     });
 
     // Clear localStorage mocks
@@ -53,385 +42,259 @@ describe('TimerStore', () => {
     jest.useRealTimers();
   });
 
-  describe('Initial State', () => {
-    it('should have correct initial state', () => {
-      const store = useTimerStore.getState();
-
-      expect(store.currentMode).toBe('work');
-      expect(store.status).toBe('idle');
-      expect(store.remainingTime).toBe(1500); // 25 minutes
-      expect(store.duration).toBe(1500);
-      expect(store.currentSessionId).toBeNull();
-      expect(store.sessionsCompleted).toBe(0);
-      expect(store.completedSessions).toEqual([]);
-      expect(store.currentTask).toBeNull();
-      expect(store.tasks).toEqual([]);
-      expect(store.todayWorkTime).toBe(0);
-      expect(store.totalWorkTime).toBe(0);
-      expect(store.todayCompletedSessions).toBe(0);
-    });
-
-    it('should have correct default settings', () => {
-      const store = useTimerStore.getState();
-
-      expect(store.settings.workDuration).toBe(1500);
-      expect(store.settings.shortBreakDuration).toBe(300);
-      expect(store.settings.longBreakDuration).toBe(900);
-      expect(store.settings.sessionsUntilLongBreak).toBe(4);
-      expect(store.settings.autoStartBreaks).toBe(false);
-      expect(store.settings.autoStartWork).toBe(false);
-      expect(store.settings.soundEnabled).toBe(true);
-      expect(store.settings.notificationsEnabled).toBe(true);
-    });
-  });
-
   describe('Timer Controls', () => {
-    it('should start timer and change status to running', () => {
-      jest.useFakeTimers();
+    it('should start timer and change to running state', () => {
       const store = useTimerStore.getState();
-
+      
       store.startTimer();
 
       const updatedStore = useTimerStore.getState();
-      expect(updatedStore.status).toBe('running');
-      expect(updatedStore.currentSessionId).toBeTruthy();
+      expect(updatedStore.isRunning).toBe(true);
+      expect(updatedStore.isPaused).toBe(false);
+      expect(updatedStore.isCompleted).toBe(false);
     });
 
-    it('should pause timer and change status to paused', () => {
-      jest.useFakeTimers();
+    it('should pause timer and change to paused state', () => {
       const store = useTimerStore.getState();
-
+      
       // Start timer first
       store.startTimer();
-      expect(useTimerStore.getState().status).toBe('running');
+      expect(useTimerStore.getState().isRunning).toBe(true);
 
       // Then pause it
       store.pauseTimer();
-      expect(useTimerStore.getState().status).toBe('paused');
+
+      const pausedStore = useTimerStore.getState();
+      expect(pausedStore.isRunning).toBe(false);
+      expect(pausedStore.isPaused).toBe(true);
     });
 
     it('should reset timer to initial state', () => {
-      jest.useFakeTimers();
       const store = useTimerStore.getState();
-
-      // Start and modify timer
+      
+      // Start and modify state
       store.startTimer();
-      jest.advanceTimersByTime(5000); // 5 seconds
+      store.setState({ timeLeft: 1000 }); // Simulate some time passed
 
       // Reset timer
       store.resetTimer();
 
       const resetStore = useTimerStore.getState();
-      expect(resetStore.status).toBe('idle');
-      expect(resetStore.remainingTime).toBe(resetStore.duration);
-      expect(resetStore.currentSessionId).toBeNull();
+      expect(resetStore.isRunning).toBe(false);
+      expect(resetStore.isPaused).toBe(false);
+      expect(resetStore.isCompleted).toBe(false);
+      expect(resetStore.timeLeft).toBe(25 * 60); // Reset to work duration
     });
 
-    it('should complete session and add to history', () => {
-      jest.useFakeTimers();
+    it('should complete timer and change to completed state', () => {
       const store = useTimerStore.getState();
-
-      // Start timer
-      store.startTimer();
-      const sessionId = useTimerStore.getState().currentSessionId;
-
-      // Complete session
-      store.completeSession();
+      
+      store.completeTimer();
 
       const completedStore = useTimerStore.getState();
-      expect(completedStore.status).toBe('completed');
-      expect(completedStore.completedSessions).toHaveLength(1);
-      expect(completedStore.completedSessions[0].id).toBe(sessionId);
-      expect(completedStore.completedSessions[0].mode).toBe('work');
-      expect(completedStore.sessionsCompleted).toBe(1);
-      expect(completedStore.todayCompletedSessions).toBe(1);
-    });
-
-    it('should countdown remaining time when timer is running', () => {
-      jest.useFakeTimers();
-      const store = useTimerStore.getState();
-
-      store.startTimer();
-      const initialTime = useTimerStore.getState().remainingTime;
-
-      // Advance timer by 1 second
-      jest.advanceTimersByTime(1000);
-
-      const updatedTime = useTimerStore.getState().remainingTime;
-      expect(updatedTime).toBe(initialTime - 1);
-    });
-
-    it('should auto-complete session when timer reaches zero', () => {
-      jest.useFakeTimers();
-      const store = useTimerStore.getState();
-
-      // Set remaining time to 1 second for quick test
-      useTimerStore.setState({ remainingTime: 1 });
-
-      store.startTimer();
-
-      // Advance timer by 1 second to complete
-      jest.advanceTimersByTime(1000);
-
-      const completedStore = useTimerStore.getState();
-      expect(completedStore.status).toBe('completed');
-      expect(completedStore.completedSessions).toHaveLength(1);
+      expect(completedStore.isCompleted).toBe(true);
+      expect(completedStore.isRunning).toBe(false);
     });
   });
 
   describe('Mode Switching', () => {
     it('should switch to short break mode', () => {
       const store = useTimerStore.getState();
-
+      
       store.switchMode('shortBreak');
 
       const updatedStore = useTimerStore.getState();
       expect(updatedStore.currentMode).toBe('shortBreak');
-      expect(updatedStore.remainingTime).toBe(300); // 5 minutes
-      expect(updatedStore.duration).toBe(300);
-      expect(updatedStore.status).toBe('idle');
+      expect(updatedStore.timeLeft).toBe(5 * 60); // 5 minutes
     });
 
     it('should switch to long break mode', () => {
       const store = useTimerStore.getState();
-
+      
       store.switchMode('longBreak');
 
       const updatedStore = useTimerStore.getState();
       expect(updatedStore.currentMode).toBe('longBreak');
-      expect(updatedStore.remainingTime).toBe(900); // 15 minutes
-      expect(updatedStore.duration).toBe(900);
-      expect(updatedStore.status).toBe('idle');
+      expect(updatedStore.timeLeft).toBe(15 * 60); // 15 minutes
     });
 
-    it('should auto-switch to long break after configured sessions', () => {
+    it('should not switch mode when timer is running', () => {
       const store = useTimerStore.getState();
+      
+      // Start timer
+      store.startTimer();
+      const initialMode = useTimerStore.getState().currentMode;
 
-      // Complete 4 work sessions
-      for (let i = 0; i < 4; i++) {
-        useTimerStore.setState({ currentMode: 'work' });
-        store.startTimer();
-        store.completeSession();
-      }
+      // Try to switch mode
+      store.switchMode('shortBreak');
 
-      // Next break should be long break
+      // Mode should not change
       const updatedStore = useTimerStore.getState();
-      expect(updatedStore.sessionsCompleted).toBe(4);
-      // Auto-switch logic should suggest long break
+      expect(updatedStore.currentMode).toBe(initialMode);
+    });
+  });
+
+  describe('Session Management', () => {
+    it('should increment completed cycles when work session completed', () => {
+      const store = useTimerStore.getState();
+      
+      // Set to work mode and complete
+      store.switchMode('work');
+      store.completeTimer();
+
+      const updatedStore = useTimerStore.getState();
+      expect(updatedStore.completedCycles).toBe(1);
+      expect(updatedStore.todayPomodoros).toBe(1);
+    });
+
+    it('should switch to short break after work completion', () => {
+      const store = useTimerStore.getState();
+      
+      // Complete work session
+      store.switchMode('work');
+      store.completeTimer();
+
+      const updatedStore = useTimerStore.getState();
+      expect(updatedStore.currentMode).toBe('shortBreak');
+      expect(updatedStore.timeLeft).toBe(5 * 60);
+    });
+
+    it('should switch to long break after configured work sessions', () => {
+      const store = useTimerStore.getState();
+      
+      // Set to 4 sessions (max before long break)
+      store.setState({ currentSession: 4 });
+      store.switchMode('work');
+      store.completeTimer();
+
+      const updatedStore = useTimerStore.getState();
+      expect(updatedStore.currentMode).toBe('longBreak');
+      expect(updatedStore.currentSession).toBe(1); // Reset to 1
+    });
+
+    it('should switch back to work after break completion', () => {
+      const store = useTimerStore.getState();
+      
+      // Complete short break
+      store.switchMode('shortBreak');
+      store.completeTimer();
+
+      const updatedStore = useTimerStore.getState();
+      expect(updatedStore.currentMode).toBe('work');
+      expect(updatedStore.timeLeft).toBe(25 * 60);
     });
   });
 
   describe('Settings Management', () => {
-    it('should update timer settings', () => {
+    it('should update settings and reset timer duration', () => {
       const store = useTimerStore.getState();
-
-      const newSettings = {
-        workDuration: 1800, // 30 minutes
-        shortBreakDuration: 600, // 10 minutes
-        soundEnabled: false,
-      };
-
-      store.updateSettings(newSettings);
+      
+      // Update work duration
+      store.updateSettings({ workDuration: 30 * 60 }); // 30 minutes
 
       const updatedStore = useTimerStore.getState();
-      expect(updatedStore.settings.workDuration).toBe(1800);
-      expect(updatedStore.settings.shortBreakDuration).toBe(600);
-      expect(updatedStore.settings.soundEnabled).toBe(false);
-      expect(updatedStore.settings.longBreakDuration).toBe(900); // unchanged
+      expect(updatedStore.settings.workDuration).toBe(30 * 60);
+      expect(updatedStore.timeLeft).toBe(30 * 60); // Timer should update
     });
 
-    it('should update timer duration when mode settings change', () => {
+    it('should not update timer duration when running', () => {
       const store = useTimerStore.getState();
+      
+      // Start timer
+      store.startTimer();
+      const initialTime = useTimerStore.getState().timeLeft;
+      
+      // Update settings
+      store.updateSettings({ workDuration: 30 * 60 });
 
-      // Change work duration
-      store.updateSettings({ workDuration: 1800 });
-
-      // If in work mode, duration should update
-      if (useTimerStore.getState().currentMode === 'work') {
-        expect(useTimerStore.getState().duration).toBe(1800);
-        expect(useTimerStore.getState().remainingTime).toBe(1800);
-      }
+      const updatedStore = useTimerStore.getState();
+      expect(updatedStore.settings.workDuration).toBe(30 * 60);
+      expect(updatedStore.timeLeft).toBe(initialTime); // Should not change
     });
   });
 
-  describe('Task Management', () => {
-    it('should add a new task', () => {
+  describe('Progress Calculation', () => {
+    it('should calculate current progress correctly', () => {
       const store = useTimerStore.getState();
+      
+      // Set half time remaining for 15 minute mode (short break)
+      store.switchMode('shortBreak'); // 5 * 60 = 300 seconds
+      const halfTime = 5 * 60 / 2; // 150 seconds
+      store.setState({ timeLeft: halfTime });
 
-      const newTask = {
-        title: 'Complete project documentation',
-        estimatedPomodoros: 4,
-        notes: 'Include API docs and user guide',
-      };
-
-      store.addTask(newTask);
-
-      const updatedStore = useTimerStore.getState();
-      expect(updatedStore.tasks).toHaveLength(1);
-      expect(updatedStore.tasks[0].title).toBe(newTask.title);
-      expect(updatedStore.tasks[0].estimatedPomodoros).toBe(4);
-      expect(updatedStore.tasks[0].completedPomodoros).toBe(0);
-      expect(updatedStore.tasks[0].completed).toBe(false);
-      expect(updatedStore.tasks[0].id).toBeTruthy();
-      expect(updatedStore.tasks[0].createdAt).toBeInstanceOf(Date);
+      const progress = store.getCurrentProgress();
+      expect(progress).toBe(50);
     });
 
-    it('should set current task', () => {
+    it('should return 0 progress for full time', () => {
       const store = useTimerStore.getState();
-
-      // Add a task first
-      store.addTask({
-        title: 'Test task',
-        estimatedPomodoros: 2,
-      });
-
-      const taskId = useTimerStore.getState().tasks[0].id;
-
-      // Set as current task
-      store.setCurrentTask(taskId);
-
-      const updatedStore = useTimerStore.getState();
-      expect(updatedStore.currentTask?.id).toBe(taskId);
+      
+      // Reset to full time
+      store.resetTimer();
+      const progress = store.getCurrentProgress();
+      expect(progress).toBe(0);
     });
 
-    it('should update task pomodoros when work session completed with task', () => {
-      jest.useFakeTimers();
+    it('should return 100 progress for zero time', () => {
       const store = useTimerStore.getState();
-
-      // Add and set current task
-      store.addTask({
-        title: 'Test task',
-        estimatedPomodoros: 4,
-      });
-
-      const taskId = useTimerStore.getState().tasks[0].id;
-      store.setCurrentTask(taskId);
-
-      // Complete a work session
-      store.startTimer();
-      store.completeSession();
-
-      const updatedStore = useTimerStore.getState();
-      const task = updatedStore.tasks.find(t => t.id === taskId);
-      expect(task?.completedPomodoros).toBe(1);
-    });
-
-    it('should mark task as completed when all pomodoros done', () => {
-      const store = useTimerStore.getState();
-
-      // Add task with 1 estimated pomodoro
-      store.addTask({
-        title: 'Quick task',
-        estimatedPomodoros: 1,
-      });
-
-      const taskId = useTimerStore.getState().tasks[0].id;
-
-      // Complete the task
-      store.completeTask(taskId);
-
-      const updatedStore = useTimerStore.getState();
-      const task = updatedStore.tasks.find(t => t.id === taskId);
-      expect(task?.completed).toBe(true);
-    });
-
-    it('should delete task', () => {
-      const store = useTimerStore.getState();
-
-      // Add task
-      store.addTask({
-        title: 'Task to delete',
-        estimatedPomodoros: 2,
-      });
-
-      const taskId = useTimerStore.getState().tasks[0].id;
-      expect(useTimerStore.getState().tasks).toHaveLength(1);
-
-      // Delete task
-      store.deleteTask(taskId);
-
-      const updatedStore = useTimerStore.getState();
-      expect(updatedStore.tasks).toHaveLength(0);
+      
+      store.setState({ timeLeft: 0 });
+      const progress = store.getCurrentProgress();
+      expect(progress).toBe(100);
     });
   });
 
-  describe('Statistics Calculation', () => {
-    it('should calculate today work time correctly', () => {
-      jest.useFakeTimers();
+  describe('Timer State Getter', () => {
+    it('should return complete timer state', () => {
       const store = useTimerStore.getState();
-
-      // Complete a work session
-      useTimerStore.setState({ currentMode: 'work', duration: 1500 });
-      store.startTimer();
-      store.completeSession();
-
-      const updatedStore = useTimerStore.getState();
-      expect(updatedStore.todayWorkTime).toBe(1500);
-      expect(updatedStore.totalWorkTime).toBe(1500);
+      
+      const timerState = store.getTimerState();
+      
+      expect(timerState).toHaveProperty('timeLeft');
+      expect(timerState).toHaveProperty('currentMode');
+      expect(timerState).toHaveProperty('isRunning');
+      expect(timerState).toHaveProperty('isPaused');
+      expect(timerState).toHaveProperty('isIdle');
+      expect(timerState).toHaveProperty('isCompleted');
+      expect(timerState).toHaveProperty('settings');
     });
 
-    it('should not count break sessions in work time', () => {
-      jest.useFakeTimers();
+    it('should calculate isIdle correctly', () => {
       const store = useTimerStore.getState();
+      
+      const timerState = store.getTimerState();
+      expect(timerState.isIdle).toBe(true);
+      
+      store.startTimer();
+      const runningState = store.getTimerState();
+      expect(runningState.isIdle).toBe(false);
+    });
+  });
 
+  describe('Work Time Statistics', () => {
+    it('should track today work time when completing work sessions', () => {
+      const store = useTimerStore.getState();
+      
+      // Set initial work time and complete session
+      const initialWorkTime = store.todayWorkTime;
+      store.completeTimer();
+
+      const updatedStore = useTimerStore.getState();
+      // Work time should increase when completing work session
+      expect(updatedStore.todayWorkTime).toBeGreaterThan(initialWorkTime);
+    });
+
+    it('should not add break time to work statistics', () => {
+      const store = useTimerStore.getState();
+      
       // Complete a break session
-      useTimerStore.setState({ currentMode: 'shortBreak', duration: 300 });
-      store.startTimer();
-      store.completeSession();
+      store.switchMode('shortBreak');
+      const initialWorkTime = useTimerStore.getState().todayWorkTime;
+      store.completeTimer();
 
       const updatedStore = useTimerStore.getState();
-      expect(updatedStore.todayWorkTime).toBe(0);
-      expect(updatedStore.totalWorkTime).toBe(0);
-    });
-  });
-
-  describe('Data Persistence', () => {
-    it('should save state to localStorage', () => {
-      const store = useTimerStore.getState();
-
-      store.saveToStorage();
-
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'pomodoro-timer-state',
-        expect.any(String)
-      );
-    });
-
-    it('should load state from localStorage', () => {
-      const mockState = {
-        settings: {
-          workDuration: 1800,
-          shortBreakDuration: 600,
-          longBreakDuration: 1200,
-          sessionsUntilLongBreak: 3,
-          autoStartBreaks: true,
-          autoStartWork: true,
-          soundEnabled: false,
-          notificationsEnabled: false,
-        },
-        tasks: [],
-        completedSessions: [],
-        totalWorkTime: 3600,
-      };
-
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockState));
-
-      const store = useTimerStore.getState();
-      store.loadFromStorage();
-
-      const updatedStore = useTimerStore.getState();
-      expect(updatedStore.settings.workDuration).toBe(1800);
-      expect(updatedStore.settings.autoStartBreaks).toBe(true);
-      expect(updatedStore.totalWorkTime).toBe(3600);
-    });
-
-    it('should handle invalid localStorage data gracefully', () => {
-      localStorageMock.getItem.mockReturnValue('invalid-json');
-
-      const store = useTimerStore.getState();
-
-      // Should not throw error
-      expect(() => store.loadFromStorage()).not.toThrow();
+      expect(updatedStore.todayWorkTime).toBe(initialWorkTime); // Should not change
     });
   });
 });
+

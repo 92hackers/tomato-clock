@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type {
   TimerStore,
   TimerMode,
@@ -8,13 +9,49 @@ import type {
 } from '../types/timer';
 import { isToday } from '../utils/timeFormatter';
 
+interface TimerState {
+  // Core timer state
+  timeLeft: number;
+  currentMode: TimerMode;
+  isRunning: boolean;
+  isPaused: boolean;
+  isCompleted: boolean;
+  
+  // Session tracking
+  currentSession: number;
+  sessionsUntilLongBreak: number;
+  completedCycles: number;
+  
+  // Statistics
+  todayPomodoros: number;
+  todayWorkTime: number;
+  
+  // Settings
+  settings: TimerSettings;
+  
+  // Actions
+  startTimer: () => void;
+  pauseTimer: () => void;
+  resetTimer: () => void;
+  completeTimer: () => void;
+  switchMode: (mode: TimerMode) => void;
+  updateSettings: (settings: Partial<TimerSettings>) => void;
+  
+  // Internal state management
+  setState: (updates: Partial<TimerState>) => void;
+  
+  // Getters
+  getTimerState: () => TimerStore;
+  getCurrentProgress: () => number;
+}
+
 const DEFAULT_SETTINGS: TimerSettings = {
-  workDuration: 1500,
-  shortBreakDuration: 300,
-  longBreakDuration: 900,
+  workDuration: 25 * 60, // 25 minutes
+  shortBreakDuration: 5 * 60, // 5 minutes
+  longBreakDuration: 15 * 60, // 15 minutes
   sessionsUntilLongBreak: 4,
   autoStartBreaks: false,
-  autoStartWork: false,
+  autoStartPomodoros: false,
   soundEnabled: true,
   notificationsEnabled: true,
 };
@@ -73,315 +110,176 @@ const recalculateStatistics = (
   return { todayWorkTime, todayCompletedSessions, totalWorkTime };
 };
 
-export const useTimerStore = create<TimerStore>((set, get) => ({
-  // Initial state
-  currentMode: 'work',
-  status: 'idle',
-  remainingTime: 1500,
-  duration: 1500,
-  currentSessionId: null,
-  sessionsCompleted: 0,
-  settings: DEFAULT_SETTINGS,
-  completedSessions: [],
-  currentTask: null,
-  tasks: [],
-  todayWorkTime: 0,
-  totalWorkTime: 0,
-  todayCompletedSessions: 0,
+export const useTimerStore = create<TimerState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      timeLeft: DEFAULT_SETTINGS.workDuration,
+      currentMode: 'work',
+      isRunning: false,
+      isPaused: false,
+      isCompleted: false,
+      currentSession: 1,
+      sessionsUntilLongBreak: DEFAULT_SETTINGS.sessionsUntilLongBreak,
+      completedCycles: 0,
+      todayPomodoros: 0,
+      todayWorkTime: 0,
+      settings: DEFAULT_SETTINGS,
 
-  // Timer controls
-  startTimer: () => {
-    const state = get();
+      // Actions
+      startTimer: () => {
+        set((state) => ({
+          isRunning: true,
+          isPaused: false,
+          isCompleted: false,
+        }));
+      },
 
-    if (state.status === 'running') return;
+      pauseTimer: () => {
+        set((state) => ({
+          isRunning: false,
+          isPaused: true,
+        }));
+      },
 
-    const sessionId = state.currentSessionId || generateId();
+      resetTimer: () => {
+        const state = get();
+        const duration = 
+          state.currentMode === 'work' ? state.settings.workDuration :
+          state.currentMode === 'shortBreak' ? state.settings.shortBreakDuration :
+          state.settings.longBreakDuration;
 
-    set({
-      status: 'running',
-      currentSessionId: sessionId,
-    });
+        set({
+          timeLeft: duration,
+          isRunning: false,
+          isPaused: false,
+          isCompleted: false,
+        });
+      },
 
-    clearExistingTimer();
+      completeTimer: () => {
+        const state = get();
+        let updates: Partial<TimerState> = {
+          isRunning: false,
+          isPaused: false,
+          isCompleted: true,
+        };
 
-    // Start countdown
-    timerInterval = setInterval(() => {
-      const currentState = get();
+        if (state.currentMode === 'work') {
+          // Completed a work session
+          updates.todayPomodoros = state.todayPomodoros + 1;
+          updates.todayWorkTime = state.todayWorkTime + (state.settings.workDuration - state.timeLeft);
+          updates.completedCycles = state.completedCycles + 1;
+          
+          // Automatically switch to break
+          if (state.currentSession >= state.settings.sessionsUntilLongBreak) {
+            updates.currentMode = 'longBreak';
+            updates.timeLeft = state.settings.longBreakDuration;
+            updates.currentSession = 1;
+            updates.sessionsUntilLongBreak = state.settings.sessionsUntilLongBreak;
+          } else {
+            updates.currentMode = 'shortBreak';
+            updates.timeLeft = state.settings.shortBreakDuration;
+            updates.currentSession = state.currentSession + 1;
+            updates.sessionsUntilLongBreak = state.sessionsUntilLongBreak - 1;
+          }
+        } else {
+          // Completed a break session, switch back to work
+          updates.currentMode = 'work';
+          updates.timeLeft = state.settings.workDuration;
+        }
 
-      if (currentState.status !== 'running') {
-        clearExistingTimer();
-        return;
-      }
+        set(updates);
+        
+        // Auto-start next session if enabled
+        if (
+          (state.currentMode === 'work' && state.settings.autoStartBreaks) ||
+          (state.currentMode !== 'work' && state.settings.autoStartPomodoros)
+        ) {
+          setTimeout(() => {
+            get().startTimer();
+          }, 1000);
+        }
+      },
 
-      const newRemainingTime = currentState.remainingTime - 1;
+      switchMode: (mode: TimerMode) => {
+        const state = get();
+        if (state.isRunning) return; // Don't allow switching while running
 
-      if (newRemainingTime <= 0) {
-        // Auto-complete session when timer reaches zero
-        get().completeSession();
-      } else {
-        set({ remainingTime: newRemainingTime });
-      }
-    }, 1000);
-  },
+        const duration = 
+          mode === 'work' ? state.settings.workDuration :
+          mode === 'shortBreak' ? state.settings.shortBreakDuration :
+          state.settings.longBreakDuration;
 
-  pauseTimer: () => {
-    clearExistingTimer();
-    set({ status: 'paused' });
-  },
+        set({
+          currentMode: mode,
+          timeLeft: duration,
+          isRunning: false,
+          isPaused: false,
+          isCompleted: false,
+        });
+      },
 
-  resetTimer: () => {
-    clearExistingTimer();
+      updateSettings: (newSettings: Partial<TimerSettings>) => {
+        const state = get();
+        const updatedSettings = { ...state.settings, ...newSettings };
+        
+        set((state) => ({
+          settings: updatedSettings,
+          // Update current timer if not running
+          ...((!state.isRunning) && {
+            timeLeft: 
+              state.currentMode === 'work' ? updatedSettings.workDuration :
+              state.currentMode === 'shortBreak' ? updatedSettings.shortBreakDuration :
+              updatedSettings.longBreakDuration
+          })
+        }));
+      },
 
-    const state = get();
-    const duration = getDurationForMode(state.currentMode, state.settings);
+      setState: (updates: Partial<TimerState>) => {
+        set((state) => ({ ...state, ...updates }));
+      },
 
-    set({
-      status: 'idle',
-      remainingTime: duration,
-      currentSessionId: null,
-    });
-  },
+      // Getters
+      getTimerState: (): TimerStore => {
+        const state = get();
+        return {
+          timeLeft: state.timeLeft,
+          currentMode: state.currentMode,
+          isRunning: state.isRunning,
+          isPaused: state.isPaused,
+          isIdle: !state.isRunning && !state.isPaused && !state.isCompleted,
+          isCompleted: state.isCompleted,
+          currentSession: state.currentSession,
+          sessionsUntilLongBreak: state.sessionsUntilLongBreak,
+          completedCycles: state.completedCycles,
+          todayPomodoros: state.todayPomodoros,
+          todayWorkTime: state.todayWorkTime,
+          settings: state.settings,
+        };
+      },
 
-  completeSession: () => {
-    clearExistingTimer();
-
-    const state = get();
-
-    if (!state.currentSessionId) return;
-
-    const session: Session = {
-      id: state.currentSessionId,
-      mode: state.currentMode,
-      duration: state.duration,
-      completedAt: new Date(),
-      taskId: state.currentTask?.id,
-    };
-
-    const newCompletedSessions = [...state.completedSessions, session];
-    const newSessionsCompleted = state.sessionsCompleted + 1;
-
-    // Calculate work time statistics
-    const stats = recalculateStatistics(newCompletedSessions);
-
-    // Update task progress if there's a current task
-    let updatedTasks = state.tasks;
-    if (state.currentTask && state.currentMode === 'work') {
-      updatedTasks = state.tasks.map(task =>
-        task.id === state.currentTask?.id
-          ? { ...task, completedPomodoros: task.completedPomodoros + 1 }
-          : task
-      );
-    }
-
-    set({
-      status: 'completed',
-      completedSessions: newCompletedSessions,
-      sessionsCompleted: newSessionsCompleted,
-      todayWorkTime: stats.todayWorkTime,
-      totalWorkTime: stats.totalWorkTime,
-      todayCompletedSessions: stats.todayCompletedSessions,
-      tasks: updatedTasks,
-      currentSessionId: null,
-    });
-
-    // Auto-save to storage
-    setTimeout(() => get().saveToStorage(), 0);
-  },
-
-  switchMode: (mode: TimerMode) => {
-    clearExistingTimer();
-
-    const state = get();
-    const duration = getDurationForMode(mode, state.settings);
-
-    set({
-      currentMode: mode,
-      status: 'idle',
-      remainingTime: duration,
-      duration: duration,
-      currentSessionId: null,
-    });
-  },
-
-  // Settings
-  updateSettings: (newSettings: Partial<TimerSettings>) => {
-    const state = get();
-    const updatedSettings = { ...state.settings, ...newSettings };
-
-    // Update current timer duration if mode settings changed
-    const updates: {
-      settings: TimerSettings;
-      duration?: number;
-      remainingTime?: number;
-    } = { settings: updatedSettings };
-
-    const currentModeDurationKey =
-      state.currentMode === 'work'
-        ? 'workDuration'
-        : state.currentMode === 'shortBreak'
-          ? 'shortBreakDuration'
-          : 'longBreakDuration';
-
-    if (newSettings[currentModeDurationKey] !== undefined) {
-      const newDuration = newSettings[currentModeDurationKey]!;
-      updates.duration = newDuration;
-      if (state.status === 'idle') {
-        updates.remainingTime = newDuration;
-      }
-    }
-
-    set(updates);
-
-    // Auto-save to storage
-    setTimeout(() => get().saveToStorage(), 0);
-  },
-
-  // Task management
-  addTask: taskData => {
-    const state = get();
-    const newTask: Task = {
-      id: generateId(),
-      title: taskData.title,
-      estimatedPomodoros: taskData.estimatedPomodoros,
-      completedPomodoros: 0,
-      completed: false,
-      notes: taskData.notes,
-      createdAt: new Date(),
-    };
-
-    set({
-      tasks: [...state.tasks, newTask],
-    });
-
-    // Auto-save to storage
-    setTimeout(() => get().saveToStorage(), 0);
-  },
-
-  updateTask: (taskId: string, updates: Partial<Task>) => {
-    const state = get();
-    const updatedTasks = state.tasks.map(task =>
-      task.id === taskId ? { ...task, ...updates } : task
-    );
-
-    // Update current task if it's the one being updated
-    const updatedCurrentTask =
-      state.currentTask?.id === taskId
-        ? { ...state.currentTask, ...updates }
-        : state.currentTask;
-
-    set({
-      tasks: updatedTasks,
-      currentTask: updatedCurrentTask,
-    });
-
-    // Auto-save to storage
-    setTimeout(() => get().saveToStorage(), 0);
-  },
-
-  deleteTask: (taskId: string) => {
-    const state = get();
-    const filteredTasks = state.tasks.filter(task => task.id !== taskId);
-
-    // Clear current task if it's the one being deleted
-    const updatedCurrentTask =
-      state.currentTask?.id === taskId ? null : state.currentTask;
-
-    set({
-      tasks: filteredTasks,
-      currentTask: updatedCurrentTask,
-    });
-
-    // Auto-save to storage
-    setTimeout(() => get().saveToStorage(), 0);
-  },
-
-  setCurrentTask: (taskId: string | null) => {
-    const state = get();
-    const task = taskId ? state.tasks.find(t => t.id === taskId) || null : null;
-
-    set({
-      currentTask: task,
-    });
-
-    // Auto-save to storage
-    setTimeout(() => get().saveToStorage(), 0);
-  },
-
-  completeTask: (taskId: string) => {
-    get().updateTask(taskId, { completed: true });
-  },
-
-  // Data persistence
-  saveToStorage: () => {
-    try {
-      const state = get();
-      const dataToSave = {
-        settings: state.settings,
-        tasks: state.tasks,
-        completedSessions: state.completedSessions,
-        totalWorkTime: state.totalWorkTime,
+      getCurrentProgress: (): number => {
+        const state = get();
+        const totalDuration = 
+          state.currentMode === 'work' ? state.settings.workDuration :
+          state.currentMode === 'shortBreak' ? state.settings.shortBreakDuration :
+          state.settings.longBreakDuration;
+        
+        return ((totalDuration - state.timeLeft) / totalDuration) * 100;
+      },
+    }),
+    {
+      name: 'timer-storage',
+      partialize: (state) => ({
+        currentMode: state.currentMode,
+        currentSession: state.currentSession,
+        sessionsUntilLongBreak: state.sessionsUntilLongBreak,
+        completedCycles: state.completedCycles,
+        todayPomodoros: state.todayPomodoros,
         todayWorkTime: state.todayWorkTime,
-        todayCompletedSessions: state.todayCompletedSessions,
-        sessionsCompleted: state.sessionsCompleted,
-      };
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-    } catch (error) {
-      console.error('Failed to save to localStorage:', error);
+        settings: state.settings,
+      }),
     }
-  },
-
-  loadFromStorage: () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) return;
-
-      const data = JSON.parse(saved);
-
-      // Convert date strings back to Date objects
-      const completedSessions = (data.completedSessions || []).map(
-        (session: {
-          id: string;
-          mode: TimerMode;
-          duration: number;
-          completedAt: string;
-          taskId?: string;
-        }) => ({
-          ...session,
-          completedAt: new Date(session.completedAt),
-        })
-      );
-
-      const tasks = (data.tasks || []).map(
-        (task: {
-          id: string;
-          title: string;
-          estimatedPomodoros: number;
-          completedPomodoros: number;
-          completed: boolean;
-          notes?: string;
-          createdAt: string;
-        }) => ({
-          ...task,
-          createdAt: new Date(task.createdAt),
-        })
-      );
-
-      // Recalculate today's stats in case the date has changed
-      const stats = recalculateStatistics(completedSessions);
-
-      set({
-        settings: { ...DEFAULT_SETTINGS, ...data.settings },
-        tasks,
-        completedSessions,
-        totalWorkTime: data.totalWorkTime || stats.totalWorkTime,
-        todayWorkTime: stats.todayWorkTime,
-        todayCompletedSessions: stats.todayCompletedSessions,
-        sessionsCompleted: data.sessionsCompleted || 0,
-      });
-    } catch (error) {
-      console.error('Failed to load from localStorage:', error);
-      // Don't throw - gracefully handle invalid data
-    }
-  },
-}));
+  )
+);
