@@ -23,6 +23,34 @@ export interface TaskUpdateRequest {
   notes?: string;
 }
 
+export interface TaskFormData {
+  title: string;
+  estimatedPomodoros: number;
+  notes?: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
+export interface ValidationRules {
+  title: {
+    required: true;
+    minLength: 1;
+    maxLength: 100;
+  };
+  estimatedPomodoros: {
+    min: 1;
+    max: 20;
+    default: 4;
+  };
+  notes: {
+    maxLength: 500;
+    optional: true;
+  };
+}
+
 export interface TaskProgress {
   taskId: string;
   progress: number; // 0-100

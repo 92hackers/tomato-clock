@@ -203,8 +203,8 @@ const styles = `
   .task-checkbox {
     width: 16px;
     height: 16px;
-    border: 2px solid #ddd;
     border-radius: 50%;
+    border: 2px solid #ddd;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -245,8 +245,9 @@ const styles = `
   .empty-tasks {
     text-align: center;
     color: #999;
+    font-size: 14px;
+    padding: 20px;
     font-style: italic;
-    padding: 20px 0;
   }
 
   .stats {
@@ -272,14 +273,13 @@ const styles = `
   .stat-label {
     font-size: 12px;
     color: #999;
-    line-height: 1.2;
   }
 
   .task-form {
+    margin-bottom: 20px;
+    padding: 15px;
     background-color: #f8f9fa;
     border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
   }
 
   .form-input {
@@ -289,7 +289,6 @@ const styles = `
     border-radius: 6px;
     font-size: 14px;
     margin-bottom: 10px;
-    box-sizing: border-box;
   }
 
   .form-actions {
@@ -303,7 +302,6 @@ const styles = `
     border-radius: 6px;
     font-size: 12px;
     cursor: pointer;
-    font-weight: 500;
   }
 
   .form-btn.primary {
@@ -311,17 +309,9 @@ const styles = `
     color: white;
   }
 
-  .form-btn.primary:hover {
-    background-color: #0056d6;
-  }
-
   .form-btn.secondary {
     background-color: #f0f0f0;
     color: #555;
-  }
-
-  .form-btn.secondary:hover {
-    background-color: #e8e8e8;
   }
 `;
 
@@ -365,51 +355,6 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle }) => (
   </div>
 );
 
-// Add Task Form Component
-interface AddTaskFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (title: string, estimatedPomodoros: number) => void;
-}
-
-const AddTaskForm: React.FC<AddTaskFormProps> = ({ isOpen, onClose, onAdd }) => {
-  const [title, setTitle] = useState('');
-  const [estimatedPomodoros, setEstimatedPomodoros] = useState(4);
-
-  const handleSubmit = () => {
-    if (title.trim()) {
-      onAdd(title, estimatedPomodoros);
-      setTitle('');
-      setEstimatedPomodoros(4);
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="task-form">
-      <input
-        type="text"
-        className="form-input"
-        placeholder="输入任务名称"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-        autoFocus
-      />
-      <div className="form-actions">
-        <button className="form-btn primary" onClick={handleSubmit}>
-          保存
-        </button>
-        <button className="form-btn secondary" onClick={onClose}>
-          取消
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // Main PomodoroTimer Component
 export const PomodoroTimer: React.FC = () => {
   const router = useRouter();
@@ -428,12 +373,9 @@ export const PomodoroTimer: React.FC = () => {
 
   const {
     tasks,
-    addTask,
     completeTask,
     getActiveTasks,
   } = useTaskStore();
-
-  const [showAddForm, setShowAddForm] = useState(false);
 
   const activeTasks = getActiveTasks();
   const completedTasks = tasks.filter(t => t.completed);
@@ -481,10 +423,6 @@ export const PomodoroTimer: React.FC = () => {
     completeTask(taskId);
   };
 
-  const handleTaskAdd = (title: string, estimatedPomodoros: number) => {
-    addTask({ title, estimatedPomodoros });
-  };
-
   // Mode labels mapping
   const modeLabels = {
     work: '专注',
@@ -497,22 +435,27 @@ export const PomodoroTimer: React.FC = () => {
     router.push('/settings');
   };
 
+  // 处理添加任务按钮点击 - 导航到添加任务页面
+  const handleAddTaskClick = () => {
+    router.push('/add-task');
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div className="timer-card" data-testid="pomodoro-timer">
+      <div className="timer-card">
         {/* Header */}
         <div className="header">
           <div className="title">专注时钟</div>
-          <button className="settings-btn" title="设置" onClick={handleSettingsClick}>
-            ⚙️
-          </button>
+          <button className="settings-btn" onClick={handleSettingsClick}>⚙️</button>
         </div>
 
-        {/* Timer Circle */}
+        {/* Timer Display */}
         <div className="timer-circle">
-          <div className="timer-display" data-testid="timer-display">{time}</div>
-          {unit && <div className="timer-unit">{unit}</div>}
+          <div className="timer-display">
+            {time}
+            {unit && <div className="timer-unit">{unit}</div>}
+          </div>
         </div>
 
         {/* Mode Tabs */}
@@ -539,10 +482,10 @@ export const PomodoroTimer: React.FC = () => {
 
         {/* Control Buttons */}
         <div className="controls">
-          <button className="control-btn play-btn" onClick={handleTimerAction} aria-label={isRunning ? '暂停' : '开始'}>
+          <button className="control-btn play-btn" onClick={handleTimerAction}>
             {isRunning ? '⏸' : '▶'}
           </button>
-          <button className="control-btn reset-btn" onClick={resetTimer} aria-label="重置">
+          <button className="control-btn reset-btn" onClick={resetTimer}>
             ↻
           </button>
         </div>
@@ -550,16 +493,8 @@ export const PomodoroTimer: React.FC = () => {
         {/* Tasks Section */}
         <div className="section-header">
           <div className="section-title">今日任务</div>
-          <button className="add-btn" onClick={() => setShowAddForm(true)}>
-            +
-          </button>
+          <button className="add-btn" onClick={handleAddTaskClick}>+</button>
         </div>
-
-        <AddTaskForm
-          isOpen={showAddForm}
-          onClose={() => setShowAddForm(false)}
-          onAdd={handleTaskAdd}
-        />
 
         <div className="task-list">
           {activeTasks.length > 0 ? (

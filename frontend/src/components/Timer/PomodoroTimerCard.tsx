@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useTimer } from '../../hooks/useTimer';
 import { useTaskStore } from '../../store/taskStore';
 import { formatDuration } from '../../utils/timeFormatter';
@@ -221,45 +222,6 @@ const styles = `
     font-size: 12px;
     color: #999;
   }
-
-  .task-form {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 10px;
-  }
-
-  .form-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    margin-bottom: 10px;
-  }
-
-  .form-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .form-button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .form-button.primary {
-    background-color: #007aff;
-    color: white;
-  }
-
-  .form-button.secondary {
-    background-color: #f0f0f0;
-    color: #555;
-  }
 `;
 
 // Mode Tab Component
@@ -303,51 +265,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => (
   </li>
 );
 
-// Add Task Form Component
-interface AddTaskFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (title: string, estimatedPomodoros: number) => void;
-}
-
-const AddTaskForm: React.FC<AddTaskFormProps> = ({ isOpen, onClose, onAdd }) => {
-  const [title, setTitle] = useState('');
-  const [estimatedPomodoros, setEstimatedPomodoros] = useState(4);
-
-  const handleSubmit = () => {
-    if (title.trim()) {
-      onAdd(title, estimatedPomodoros);
-      setTitle('');
-      setEstimatedPomodoros(4);
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="task-form">
-      <input
-        type="text"
-        className="form-input"
-        placeholder="输入任务名称"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <div className="form-actions">
-        <button className="form-button primary" onClick={handleSubmit}>
-          保存
-        </button>
-        <button className="form-button secondary" onClick={onClose}>
-          取消
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // Main Component
 export const PomodoroTimerCard: React.FC = () => {
+  const router = useRouter();
   const {
     currentMode,
     timeLeft,
@@ -366,13 +286,10 @@ export const PomodoroTimerCard: React.FC = () => {
 
   const {
     tasks,
-    addTask,
     completeTask,
     incrementTaskPomodoro,
     getActiveTasks,
   } = useTaskStore();
-
-  const [showAddForm, setShowAddForm] = useState(false);
 
   const formattedTime = formatDuration(timeLeft);
   const activeTasks = getActiveTasks();
@@ -395,12 +312,18 @@ export const PomodoroTimerCard: React.FC = () => {
     completeTask(taskId);
   };
 
-  const handleTaskAdd = (title: string, estimatedPomodoros: number) => {
-    addTask({ title, estimatedPomodoros });
-  };
-
   const handleTaskDelete = (taskId: string) => {
     // Implementation for task deletion
+  };
+
+  // 处理添加任务按钮点击 - 导航到添加任务页面
+  const handleAddTaskClick = () => {
+    router.push('/add-task');
+  };
+
+  // 处理设置按钮点击
+  const handleSettingsClick = () => {
+    router.push('/settings');
   };
 
   // Mode labels mapping
@@ -417,7 +340,7 @@ export const PomodoroTimerCard: React.FC = () => {
         {/* Header */}
         <div className="header">
           <div className="title">专注时钟</div>
-          <button className="settings">⚙️</button>
+          <button className="settings" onClick={handleSettingsClick}>⚙️</button>
         </div>
 
         {/* Timer Circle */}
@@ -460,31 +383,24 @@ export const PomodoroTimerCard: React.FC = () => {
         {/* Tasks Section */}
         <div className="section-title">
           今日任务
-          <button className="add-button" onClick={() => setShowAddForm(true)}>
+          <button className="add-button" onClick={handleAddTaskClick}>
             +
           </button>
         </div>
 
-        <AddTaskForm
-          isOpen={showAddForm}
-          onClose={() => setShowAddForm(false)}
-          onAdd={handleTaskAdd}
-        />
-
         <ul className="task-list">
-          {activeTasks.slice(0, 3).map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={handleTaskToggle}
-              onDelete={handleTaskDelete}
-            />
-          ))}
-          {activeTasks.length === 0 && (
-            <li className="task-item">
-              <span className="task-text" style={{ color: '#999', fontStyle: 'italic' }}>
-                暂无任务，点击 + 添加任务
-              </span>
+          {activeTasks.length > 0 ? (
+            activeTasks.slice(0, 3).map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={handleTaskToggle}
+                onDelete={handleTaskDelete}
+              />
+            ))
+          ) : (
+            <li style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+              暂无任务，点击 + 添加任务
             </li>
           )}
         </ul>
@@ -493,15 +409,15 @@ export const PomodoroTimerCard: React.FC = () => {
         <div className="section-title">今日统计</div>
         <div className="stats">
           <div className="stat-box">
-            <div className="stat-number">{todayPomodoros}</div>
+            <div className="stat-number">{todayPomodoros || 0}</div>
             <div className="stat-label">完成番茄</div>
           </div>
           <div className="stat-box">
-            <div className="stat-number">{Math.round(todayWorkTime / 60)}</div>
+            <div className="stat-number">{Math.round((todayWorkTime || 0) / 60)}</div>
             <div className="stat-label">专注分钟</div>
           </div>
           <div className="stat-box">
-            <div className="stat-number">{tasks.filter(t => t.completed).length}</div>
+            <div className="stat-number">{activeTasks.filter(t => t.completed).length}</div>
             <div className="stat-label">完成任务</div>
           </div>
         </div>
