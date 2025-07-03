@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PomodoroTimerCard } from '../components/Timer/PomodoroTimerCard';
+import { PomodoroTimer } from '../components/Timer/PomodoroTimer';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -21,7 +21,7 @@ export default function HomePage() {
   return (
     <main className='min-h-screen bg-gray-100 flex items-center justify-center py-8'>
       <div className='w-full max-w-lg'>
-        <PomodoroTimerCard />
+        <PomodoroTimer />
       </div>
     </main>
   );

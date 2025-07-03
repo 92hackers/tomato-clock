@@ -1,394 +1,342 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '../../../testUtils';
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PomodoroTimer } from '../PomodoroTimer';
 import { useTimer } from '../../../hooks/useTimer';
+import { useTaskStore } from '../../../store/taskStore';
 
-// Mock the useTimer hook
-jest.mock('../../../hooks/useTimer');
-const mockUseTimer = useTimer as jest.MockedFunction<typeof useTimer>;
+// Mock the hooks
+jest.mock('../../../hooks/useTimer', () => ({
+  useTimer: jest.fn(),
+}));
+
+jest.mock('../../../store/taskStore', () => ({
+  useTaskStore: jest.fn(),
+}));
 
 describe('PomodoroTimer Component', () => {
-  const mockTimerHook = {
-    // Timer state
-    currentMode: 'work' as const,
-    status: 'idle' as const,
-    remainingTime: 1500,
-    duration: 1500,
-    formattedTime: '25:00',
-    progress: 0,
-    currentSessionId: null,
-    
-    // Mode info
-    currentModeInfo: {
-      label: '专注',
-      duration: 1500,
-      color: 'orange',
-      description: '专注工作时间',
-    },
-    modeInfo: {
-      work: {
-        label: '专注',
-        duration: 1500,
-        color: 'orange',
-        description: '专注工作时间',
-      },
-      shortBreak: {
-        label: '短休息',
-        duration: 300,
-        color: 'green',
-        description: '短暂休息时间',
-      },
-      longBreak: {
-        label: '长休息',
-        duration: 900,
-        color: 'blue',
-        description: '长时间休息',
-      },
-    },
-    
-    // Status checks
+  const mockUseTimer = {
+    currentMode: 'work',
+    timeLeft: 1500, // 25 minutes
     isRunning: false,
     isPaused: false,
-    isIdle: true,
-    isCompleted: false,
-    
-    // Timer controls
-    start: jest.fn(),
-    pause: jest.fn(),
-    reset: jest.fn(),
-    complete: jest.fn(),
+    todayPomodoros: 2,
+    todayWorkTime: 3000, // 50 minutes
+    startTimer: jest.fn(),
+    pauseTimer: jest.fn(),
+    resetTimer: jest.fn(),
     switchMode: jest.fn(),
-    
-    // Settings
-    settings: {
-      workDuration: 1500,
-      shortBreakDuration: 300,
-      longBreakDuration: 900,
-      sessionsUntilLongBreak: 4,
-      autoStartBreaks: false,
-      autoStartWork: false,
-      soundEnabled: true,
-      notificationsEnabled: true,
-    },
-    updateSettings: jest.fn(),
-    
-    // Statistics
-    sessionStats: {
-      todayPomodoros: 0,
-      todayWorkTime: 0,
-      currentSessionProgress: 0,
-      totalSessions: 0,
-      currentCycleProgress: 1,
-      sessionsUntilLongBreak: 4,
-    },
-    
-    // Current task
-    currentTask: null,
-    
-    // Utility functions
-    suggestedNextMode: jest.fn(() => 'shortBreak' as const),
-    shouldShowNotification: jest.fn(() => false),
-    getNotificationMessage: jest.fn(() => '时间到！'),
-    
-    // Storage functions
-    loadFromStorage: jest.fn(),
-    saveToStorage: jest.fn(),
+  };
+
+  const mockUseTaskStore = {
+    tasks: [
+      {
+        id: '1',
+        title: '完成番茄时钟设计',
+        estimatedPomodoros: 4,
+        completedPomodoros: 2,
+        completed: false,
+        notes: '按照设计稿实现',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: '2',
+        title: '阅读一章书',
+        estimatedPomodoros: 2,
+        completedPomodoros: 0,
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ],
+    addTask: jest.fn(),
+    completeTask: jest.fn(),
+    getActiveTasks: jest.fn().mockReturnValue([
+      {
+        id: '1',
+        title: '完成番茄时钟设计',
+        estimatedPomodoros: 4,
+        completedPomodoros: 2,
+        completed: false,
+      },
+      {
+        id: '2',
+        title: '阅读一章书',
+        estimatedPomodoros: 2,
+        completedPomodoros: 0,
+        completed: false,
+      },
+    ]),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseTimer.mockReturnValue(mockTimerHook);
+    (useTimer as jest.Mock).mockReturnValue(mockUseTimer);
+    (useTaskStore as jest.Mock).mockReturnValue(mockUseTaskStore);
   });
 
-  describe('Timer Display', () => {
-    it('should render timer with formatted time', () => {
+  describe('Basic Rendering', () => {
+    it('should render main container', () => {
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByTestId('pomodoro-timer')).toBeInTheDocument();
+    });
+
+    it('should render header with title and settings button', () => {
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByText('专注时钟')).toBeInTheDocument();
+      expect(screen.getByText('⚙️')).toBeInTheDocument();
+    });
+
+    it('should display timer with correct format when idle', () => {
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByText('25')).toBeInTheDocument();
+      expect(screen.getByText('minutes')).toBeInTheDocument();
+    });
+
+    it('should display timer in MM:SS format when running', () => {
+      const runningTimer = { ...mockUseTimer, isRunning: true };
+      (useTimer as jest.Mock).mockReturnValue(runningTimer);
+      
       render(<PomodoroTimer />);
       
       expect(screen.getByText('25:00')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: '专注' })).toBeInTheDocument();
-      expect(screen.getByText('专注工作时间')).toBeInTheDocument();
     });
 
-    it('should display progress circle', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        progress: 50,
-      });
-
+    it('should render mode tabs', () => {
       render(<PomodoroTimer />);
       
-      const progressElement = screen.getByRole('progressbar');
-      expect(progressElement).toBeInTheDocument();
-      expect(progressElement).toHaveAttribute('aria-valuenow', '50');
+      expect(screen.getByText('专注')).toBeInTheDocument();
+      expect(screen.getByText('短休息')).toBeInTheDocument();
+      expect(screen.getByText('长休息')).toBeInTheDocument();
     });
 
-    it('should show current mode color theme', () => {
+    it('should render control buttons', () => {
       render(<PomodoroTimer />);
       
-      const timerElement = screen.getByTestId('timer-display');
-      expect(timerElement).toHaveClass('text-orange-600');
-    });
-  });
-
-  describe('Mode Switching', () => {
-    it('should render mode tabs for work, short break, and long break', () => {
-      render(<PomodoroTimer />);
-      
-      expect(screen.getByRole('button', { name: /专注/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /短休息/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /长休息/i })).toBeInTheDocument();
-    });
-
-    it('should highlight active mode tab', () => {
-      render(<PomodoroTimer />);
-      
-      const workTab = screen.getByRole('button', { name: /专注/i });
-      expect(workTab).toHaveClass('bg-orange-600', 'text-white');
-    });
-
-    it('should switch mode when tab is clicked', () => {
-      render(<PomodoroTimer />);
-      
-      const shortBreakTab = screen.getByRole('button', { name: /短休息/i });
-      fireEvent.click(shortBreakTab);
-      
-      expect(mockTimerHook.switchMode).toHaveBeenCalledWith('shortBreak');
-    });
-
-    it('should not allow mode switching when timer is running', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'running',
-        isRunning: true,
-        isIdle: false,
-      });
-
-      render(<PomodoroTimer />);
-      
-      const shortBreakTab = screen.getByRole('button', { name: /短休息/i });
-      expect(shortBreakTab).toBeDisabled();
+      expect(screen.getByText('▶')).toBeInTheDocument(); // Play button
+      expect(screen.getByText('↻')).toBeInTheDocument(); // Reset button
     });
   });
 
   describe('Timer Controls', () => {
-    it('should render start button when timer is idle', () => {
+    it('should call startTimer when play button clicked', () => {
       render(<PomodoroTimer />);
       
-      const startButton = screen.getByRole('button', { name: /开始/i });
-      expect(startButton).toBeInTheDocument();
-      expect(startButton).not.toBeDisabled();
+      const playButton = screen.getByText('▶');
+      fireEvent.click(playButton);
+      
+      expect(mockUseTimer.startTimer).toHaveBeenCalledTimes(1);
     });
 
-    it('should start timer when start button is clicked', () => {
+    it('should call pauseTimer when pause button clicked and timer is running', () => {
+      const runningTimer = { ...mockUseTimer, isRunning: true };
+      (useTimer as jest.Mock).mockReturnValue(runningTimer);
+      
       render(<PomodoroTimer />);
       
-      const startButton = screen.getByRole('button', { name: /开始/i });
-      fireEvent.click(startButton);
-      
-      expect(mockTimerHook.start).toHaveBeenCalled();
-    });
-
-    it('should render pause button when timer is running', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'running',
-        isRunning: true,
-        isIdle: false,
-      });
-
-      render(<PomodoroTimer />);
-      
-      const pauseButton = screen.getByRole('button', { name: /暂停/i });
-      expect(pauseButton).toBeInTheDocument();
-    });
-
-    it('should pause timer when pause button is clicked', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'running',
-        isRunning: true,
-        isIdle: false,
-      });
-
-      render(<PomodoroTimer />);
-      
-      const pauseButton = screen.getByRole('button', { name: /暂停/i });
+      const pauseButton = screen.getByText('⏸');
       fireEvent.click(pauseButton);
       
-      expect(mockTimerHook.pause).toHaveBeenCalled();
+      expect(mockUseTimer.pauseTimer).toHaveBeenCalledTimes(1);
     });
 
-    it('should render resume button when timer is paused', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'paused',
-        isPaused: true,
-        isIdle: false,
-      });
-
+    it('should call resetTimer when reset button clicked', () => {
       render(<PomodoroTimer />);
       
-      const resumeButton = screen.getByRole('button', { name: /继续/i });
-      expect(resumeButton).toBeInTheDocument();
-    });
-
-    it('should render reset button', () => {
-      render(<PomodoroTimer />);
-      
-      const resetButton = screen.getByRole('button', { name: /重置/i });
-      expect(resetButton).toBeInTheDocument();
-    });
-
-    it('should reset timer when reset button is clicked', () => {
-      render(<PomodoroTimer />);
-      
-      const resetButton = screen.getByRole('button', { name: /重置/i });
+      const resetButton = screen.getByText('↻');
       fireEvent.click(resetButton);
       
-      expect(mockTimerHook.reset).toHaveBeenCalled();
+      expect(mockUseTimer.resetTimer).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Timer Completion', () => {
-    it('should show completion state', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'completed',
-        isCompleted: true,
-        isIdle: false,
-        remainingTime: 0,
-        formattedTime: '00:00',
-        progress: 100,
-      });
-
+  describe('Mode Switching', () => {
+    it('should highlight active mode', () => {
       render(<PomodoroTimer />);
       
-      expect(screen.getByText('完成！')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /开始新会话/i })).toBeInTheDocument();
+      const workTab = screen.getByText('专注');
+      expect(workTab).toHaveClass('active');
     });
 
-    it('should suggest next mode when session completes', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'completed',
-        isCompleted: true,
-        isIdle: false,
-        suggestedNextMode: jest.fn(() => 'shortBreak'),
-      });
-
+    it('should call switchMode when mode tab clicked', () => {
       render(<PomodoroTimer />);
       
-      expect(screen.getByText(/建议：短休息/i)).toBeInTheDocument();
+      const shortBreakTab = screen.getByText('短休息');
+      fireEvent.click(shortBreakTab);
+      
+      expect(mockUseTimer.switchMode).toHaveBeenCalledWith('shortBreak');
     });
 
-    it('should show notification when completed and enabled', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'completed',
-        isCompleted: true,
-        shouldShowNotification: jest.fn(() => true),
-        getNotificationMessage: jest.fn(() => '专注时间结束！该休息一下了。'),
-      });
-
+    it('should show correct active mode for short break', () => {
+      const shortBreakTimer = { ...mockUseTimer, currentMode: 'shortBreak' };
+      (useTimer as jest.Mock).mockReturnValue(shortBreakTimer);
+      
       render(<PomodoroTimer />);
       
-      expect(screen.getByText('专注时间结束！该休息一下了。')).toBeInTheDocument();
+      const shortBreakTab = screen.getByText('短休息');
+      expect(shortBreakTab).toHaveClass('active');
+    });
+  });
+
+  describe('Task Management', () => {
+    it('should render tasks section', () => {
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByText('今日任务')).toBeInTheDocument();
+      expect(screen.getByText('+')).toBeInTheDocument();
+    });
+
+    it('should display active tasks', () => {
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByText('完成番茄时钟设计')).toBeInTheDocument();
+      expect(screen.getByText('阅读一章书')).toBeInTheDocument();
+      expect(screen.getByText('2/4')).toBeInTheDocument();
+      expect(screen.getByText('0/2')).toBeInTheDocument();
+    });
+
+    it('should show add task form when add button clicked', async () => {
+      render(<PomodoroTimer />);
+      
+      const addButton = screen.getByText('+');
+      fireEvent.click(addButton);
+      
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('输入任务名称')).toBeInTheDocument();
+        expect(screen.getByText('保存')).toBeInTheDocument();
+        expect(screen.getByText('取消')).toBeInTheDocument();
+      });
+    });
+
+    it('should call addTask when form submitted', async () => {
+      render(<PomodoroTimer />);
+      
+      const addButton = screen.getByText('+');
+      fireEvent.click(addButton);
+      
+      await waitFor(() => {
+        const input = screen.getByPlaceholderText('输入任务名称');
+        fireEvent.change(input, { target: { value: '新任务' } });
+        
+        const saveButton = screen.getByText('保存');
+        fireEvent.click(saveButton);
+        
+        expect(mockUseTaskStore.addTask).toHaveBeenCalledWith({
+          title: '新任务',
+          estimatedPomodoros: 4,
+        });
+      });
+    });
+
+    it('should close form when cancel clicked', async () => {
+      render(<PomodoroTimer />);
+      
+      const addButton = screen.getByText('+');
+      fireEvent.click(addButton);
+      
+      await waitFor(() => {
+        const cancelButton = screen.getByText('取消');
+        fireEvent.click(cancelButton);
+        
+        expect(screen.queryByPlaceholderText('输入任务名称')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show empty message when no tasks', () => {
+      const emptyTaskStore = { 
+        ...mockUseTaskStore, 
+        getActiveTasks: jest.fn().mockReturnValue([]) 
+      };
+      (useTaskStore as jest.Mock).mockReturnValue(emptyTaskStore);
+      
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByText('暂无任务，点击 + 添加任务')).toBeInTheDocument();
     });
   });
 
   describe('Statistics Display', () => {
-    it('should show today statistics', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        sessionStats: {
-          ...mockTimerHook.sessionStats,
-          todayPomodoros: 3,
-          todayWorkTime: 4500, // 75 minutes
-        },
-      });
-
+    it('should render statistics section', () => {
       render(<PomodoroTimer />);
       
-      expect(screen.getByText('今日完成')).toBeInTheDocument();
-      expect(screen.getByText('3')).toBeInTheDocument();
-      expect(screen.getByText('个番茄钟')).toBeInTheDocument();
+      expect(screen.getByText('今日统计')).toBeInTheDocument();
     });
 
-    it('should show cycle progress', () => {
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        sessionStats: {
-          ...mockTimerHook.sessionStats,
-          currentCycleProgress: 2,
-          sessionsUntilLongBreak: 4,
-        },
-      });
-
+    it('should display today pomodoros', () => {
       render(<PomodoroTimer />);
       
-      expect(screen.getByText('周期进度')).toBeInTheDocument();
-      expect(screen.getByText('2/4')).toBeInTheDocument();
-    });
-  });
-
-  describe('Responsive Design', () => {
-    it('should apply responsive classes', () => {
-      render(<PomodoroTimer />);
-      
-      const container = screen.getByTestId('pomodoro-timer');
-      expect(container).toHaveClass('flex', 'flex-col', 'items-center', 'space-y-8');
+      expect(screen.getByText('2')).toBeInTheDocument();
+      expect(screen.getByText('完成番茄')).toBeInTheDocument();
     });
 
-    it('should have proper mobile layout', () => {
-      // Mock mobile viewport
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 375,
-      });
-
+    it('should display work time in minutes', () => {
       render(<PomodoroTimer />);
       
-      const timerDisplay = screen.getByTestId('timer-display');
-      expect(timerDisplay).toHaveClass('text-6xl', 'md:text-8xl');
+      expect(screen.getByText('50')).toBeInTheDocument();
+      expect(screen.getByText('专注分钟')).toBeInTheDocument();
+    });
+
+    it('should display completed tasks count', () => {
+      render(<PomodoroTimer />);
+      
+      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getByText('完成任务')).toBeInTheDocument();
+    });
+
+    it('should handle undefined values gracefully', () => {
+      const undefinedTimer = { 
+        ...mockUseTimer, 
+        todayPomodoros: undefined, 
+        todayWorkTime: undefined 
+      };
+      (useTimer as jest.Mock).mockReturnValue(undefinedTimer);
+      
+      render(<PomodoroTimer />);
+      
+      // Should default to 0 - check specific stat cards
+      const statCards = screen.getAllByText('0');
+      expect(statCards).toHaveLength(3); // All three stats should show 0
+      expect(screen.getByText('完成番茄')).toBeInTheDocument();
+      expect(screen.getByText('专注分钟')).toBeInTheDocument();
+      expect(screen.getByText('完成任务')).toBeInTheDocument();
     });
   });
 
   describe('Accessibility', () => {
-    it('should have proper ARIA labels', () => {
+    it('should have proper aria labels for buttons', () => {
       render(<PomodoroTimer />);
       
-      const timer = screen.getByRole('timer');
-      expect(timer).toHaveAttribute('aria-label', '番茄钟计时器');
+      const playButton = screen.getByLabelText('开始');
+      const resetButton = screen.getByLabelText('重置');
       
-      const progressBar = screen.getByRole('progressbar');
-      expect(progressBar).toHaveAttribute('aria-label', '计时进度');
+      expect(playButton).toBeInTheDocument();
+      expect(resetButton).toBeInTheDocument();
     });
 
-    it('should have keyboard navigation support', () => {
+    it('should update aria label when running', () => {
+      const runningTimer = { ...mockUseTimer, isRunning: true };
+      (useTimer as jest.Mock).mockReturnValue(runningTimer);
+      
       render(<PomodoroTimer />);
       
-      const startButton = screen.getByRole('button', { name: /开始/i });
-      expect(startButton).toHaveAttribute('tabIndex', '0');
+      const pauseButton = screen.getByLabelText('暂停');
+      expect(pauseButton).toBeInTheDocument();
     });
+  });
 
-    it('should announce timer state changes', async () => {
-      const { rerender } = render(<PomodoroTimer />);
+  describe('Error Handling', () => {
+    it('should handle missing timeLeft gracefully', () => {
+      const brokenTimer = { ...mockUseTimer, timeLeft: undefined };
+      (useTimer as jest.Mock).mockReturnValue(brokenTimer);
       
-      // Start timer
-      mockUseTimer.mockReturnValue({
-        ...mockTimerHook,
-        status: 'running',
-        isRunning: true,
-        isIdle: false,
-      });
+      render(<PomodoroTimer />);
       
-      rerender(<PomodoroTimer />);
-      
-      await waitFor(() => {
-        const announcement = screen.getByRole('status', { hidden: true });
-        expect(announcement).toHaveTextContent('计时器已开始');
-      });
+      // Should show default time
+      expect(screen.getByText('25')).toBeInTheDocument();
     });
   });
 }); 

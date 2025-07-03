@@ -1,242 +1,414 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTimer } from '../../hooks/useTimer';
-import type { TimerMode } from '../../types/timer';
+import { useTaskStore } from '../../store/taskStore';
 import { formatDuration } from '../../utils/timeFormatter';
+import type { TimerMode } from '../../types/timer';
+import type { Task } from '../../types/task';
 
-// Color mapping for different modes
-const modeColors = {
-  work: {
-    bg: 'bg-orange-600',
-    text: 'text-orange-600',
-    border: 'border-orange-600',
-    ring: 'ring-orange-200',
-  },
-  shortBreak: {
-    bg: 'bg-green-600',
-    text: 'text-green-600',
-    border: 'border-green-600',
-    ring: 'ring-green-200',
-  },
-  longBreak: {
-    bg: 'bg-blue-600',
-    text: 'text-blue-600',
-    border: 'border-blue-600',
-    ring: 'ring-blue-200',
-  },
-};
+// 严格按照设计稿的样式
+const styles = `
+  .timer-card {
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 350px;
+    padding: 30px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
 
-// Mode labels
-const modeLabels = {
-  work: '专注',
-  shortBreak: '短休息',
-  longBreak: '长休息',
-};
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+  }
 
-// Progress Circle Component
-interface ProgressCircleProps {
-  progress: number;
-  size?: number;
-  strokeWidth?: number;
-  color: string;
-  children: React.ReactNode;
-}
+  .title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+  }
 
-const ProgressCircle: React.FC<ProgressCircleProps> = ({
-  progress,
-  size = 280,
-  strokeWidth = 8,
-  color,
-  children,
-}) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDasharray = `${circumference} ${circumference}`;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  .settings-btn {
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 22px;
+    color: #888;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg
-        className="transform -rotate-90"
-        width={size}
-        height={size}
-        role="progressbar"
-        aria-valuenow={progress}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="计时进度"
-      >
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          className="text-gray-200"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={strokeDasharray}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          className={color}
-          style={{
-            transition: 'stroke-dashoffset 0.5s ease-in-out',
-          }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        {children}
-      </div>
-    </div>
-  );
-};
+  .settings-btn:hover {
+    background-color: #f5f5f5;
+  }
+
+  .timer-circle {
+    width: 200px;
+    height: 200px;
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    margin: 0 auto 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .timer-display {
+    font-size: 46px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1;
+  }
+
+  .timer-unit {
+    font-size: 16px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 25px;
+  }
+
+  .mode-tab {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .mode-tab.active {
+    background-color: #007aff;
+    color: white;
+  }
+
+  .mode-tab:not(.active) {
+    background-color: #f0f0f0;
+    color: #555;
+  }
+
+  .mode-tab:not(.active):hover {
+    background-color: #e8e8e8;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+
+  .control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: all 0.2s;
+  }
+
+  .play-btn {
+    background-color: #007aff;
+    color: white;
+  }
+
+  .play-btn:hover {
+    background-color: #0056d6;
+    transform: scale(1.05);
+  }
+
+  .reset-btn {
+    background-color: #f0f0f0;
+    color: #555;
+  }
+
+  .reset-btn:hover {
+    background-color: #e8e8e8;
+    transform: scale(1.05);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .add-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .add-btn:hover {
+    background-color: #0056d6;
+    transform: scale(1.1);
+  }
+
+  .task-list {
+    margin-bottom: 30px;
+    min-height: 80px;
+  }
+
+  .task-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .task-item:last-child {
+    border-bottom: none;
+  }
+
+  .task-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .task-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .task-checkbox.completed {
+    background-color: #007aff;
+    border-color: #007aff;
+  }
+
+  .task-checkbox.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  .task-text {
+    font-size: 14px;
+    color: #333;
+    flex: 1;
+  }
+
+  .task-text.completed {
+    text-decoration: line-through;
+    color: #999;
+  }
+
+  .task-progress {
+    font-size: 12px;
+    color: #999;
+  }
+
+  .empty-tasks {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 20px 0;
+  }
+
+  .stats {
+    display: flex;
+    gap: 8px;
+  }
+
+  .stat-card {
+    flex: 1;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.2;
+  }
+
+  .task-form {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .form-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .form-btn.primary {
+    background-color: #007aff;
+    color: white;
+  }
+
+  .form-btn.primary:hover {
+    background-color: #0056d6;
+  }
+
+  .form-btn.secondary {
+    background-color: #f0f0f0;
+    color: #555;
+  }
+
+  .form-btn.secondary:hover {
+    background-color: #e8e8e8;
+  }
+`;
 
 // Mode Tab Component
 interface ModeTabProps {
   mode: TimerMode;
+  label: string;
   isActive: boolean;
-  isDisabled: boolean;
-  onClick: (mode: TimerMode) => void;
+  onClick: () => void;
 }
 
-const ModeTab: React.FC<ModeTabProps> = ({ mode, isActive, isDisabled, onClick }) => {
-  const colors = modeColors[mode];
-  
-  return (
-    <button
-      onClick={() => onClick(mode)}
-      disabled={isDisabled}
-      className={`
-        flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200
-        ${isActive 
-          ? `${colors.bg} text-white shadow-lg` 
-          : `bg-gray-100 text-gray-600 hover:bg-gray-200 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`
-        }
-      `}
-    >
-      {modeLabels[mode]}
-    </button>
-  );
-};
+const ModeTab: React.FC<ModeTabProps> = ({ mode, label, isActive, onClick }) => (
+  <button
+    className={`mode-tab ${isActive ? 'active' : ''}`}
+    onClick={onClick}
+  >
+    {label}
+  </button>
+);
 
-// Timer Controls Component
-interface TimerControlsProps {
-  isRunning: boolean;
-  isPaused: boolean;
-  isIdle: boolean;
-  isCompleted: boolean;
-  onStart: () => void;
-  onPause: () => void;
-  onReset: () => void;
-  modeColor: string;
+// Task Item Component
+interface TaskItemProps {
+  task: Task;
+  onToggle: (id: string) => void;
 }
 
-const TimerControls: React.FC<TimerControlsProps> = ({
-  isRunning,
-  isPaused,
-  isIdle,
-  isCompleted,
-  onStart,
-  onPause,
-  onReset,
-  modeColor,
-}) => {
-  const getMainButtonText = () => {
-    if (isCompleted) return '开始新会话';
-    if (isRunning) return '暂停';
-    if (isPaused) return '继续';
-    return '开始';
-  };
-
-  const getMainButtonAction = () => {
-    if (isRunning) return onPause;
-    return onStart;
-  };
-
-  return (
-    <div className="flex items-center space-x-4">
-      {/* Main Control Button */}
-      <button
-        onClick={getMainButtonAction()}
-        tabIndex={0}
-        className={`
-          ${modeColors[modeColor as keyof typeof modeColors].bg} 
-          text-white px-8 py-4 rounded-full font-semibold text-lg
-          shadow-lg hover:shadow-xl transform hover:scale-105 
-          transition-all duration-200 focus:outline-none focus:ring-4 
-          ${modeColors[modeColor as keyof typeof modeColors].ring}
-        `}
-      >
-        {getMainButtonText()}
-      </button>
-      
-      {/* Reset Button */}
-      <button
-        onClick={onReset}
-        className="
-          bg-gray-200 text-gray-700 p-4 rounded-full 
-          hover:bg-gray-300 transition-all duration-200
-          focus:outline-none focus:ring-4 focus:ring-gray-200
-        "
-        title="重置"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </button>
+const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle }) => (
+  <div className="task-item">
+    <div className="task-left">
+      <div
+        className={`task-checkbox ${task.completed ? 'completed' : ''}`}
+        onClick={() => onToggle(task.id)}
+      />
+      <span className={`task-text ${task.completed ? 'completed' : ''}`}>
+        {task.title}
+      </span>
     </div>
-  );
-};
+    <span className="task-progress">
+      {task.completedPomodoros}/{task.estimatedPomodoros}
+    </span>
+  </div>
+);
 
-// Statistics Component
-interface StatisticsProps {
-  todayPomodoros: number;
-  todayWorkTime: number;
-  currentCycleProgress: number;
-  sessionsUntilLongBreak: number;
+// Add Task Form Component
+interface AddTaskFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (title: string, estimatedPomodoros: number) => void;
 }
 
-const Statistics: React.FC<StatisticsProps> = ({
-  todayPomodoros,
-  todayWorkTime,
-  currentCycleProgress,
-  sessionsUntilLongBreak,
-}) => {
+const AddTaskForm: React.FC<AddTaskFormProps> = ({ isOpen, onClose, onAdd }) => {
+  const [title, setTitle] = useState('');
+  const [estimatedPomodoros, setEstimatedPomodoros] = useState(4);
+
+  const handleSubmit = () => {
+    if (title.trim()) {
+      onAdd(title, estimatedPomodoros);
+      setTitle('');
+      setEstimatedPomodoros(4);
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-md">
-      {/* Today's Pomodoros */}
-      <div className="bg-white p-4 rounded-lg shadow-sm text-center">
-        <div className="text-2xl font-bold text-gray-800">{todayPomodoros}</div>
-        <div className="text-sm text-gray-600">
-          <div>今日完成</div>
-          <div>个番茄钟</div>
-        </div>
-      </div>
-      
-      {/* Today's Work Time */}
-      <div className="bg-white p-4 rounded-lg shadow-sm text-center">
-        <div className="text-2xl font-bold text-gray-800">
-          {formatDuration(todayWorkTime)}
-        </div>
-        <div className="text-sm text-gray-600">今日专注</div>
-      </div>
-      
-      {/* Cycle Progress */}
-      <div className="bg-white p-4 rounded-lg shadow-sm text-center">
-        <div className="text-2xl font-bold text-gray-800">
-          {currentCycleProgress}/{sessionsUntilLongBreak}
-        </div>
-        <div className="text-sm text-gray-600">周期进度</div>
+    <div className="task-form">
+      <input
+        type="text"
+        className="form-input"
+        placeholder="输入任务名称"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+        autoFocus
+      />
+      <div className="form-actions">
+        <button className="form-btn primary" onClick={handleSubmit}>
+          保存
+        </button>
+        <button className="form-btn secondary" onClick={onClose}>
+          取消
+        </button>
       </div>
     </div>
   );
@@ -246,143 +418,182 @@ const Statistics: React.FC<StatisticsProps> = ({
 export const PomodoroTimer: React.FC = () => {
   const {
     currentMode,
-    status,
-    remainingTime,
-    duration,
-    progress,
+    timeLeft,
     isRunning,
     isPaused,
-    isIdle,
-    isCompleted,
-    start,
-    pause,
-    reset,
+    todayPomodoros,
+    todayWorkTime,
+    startTimer,
+    pauseTimer,
+    resetTimer,
     switchMode,
-    currentModeInfo,
-    sessionStats,
-    suggestedNextMode,
-    shouldShowNotification,
-    getNotificationMessage,
   } = useTimer();
 
-  const [announcement, setAnnouncement] = useState('');
-  const formattedTime = `${Math.floor(remainingTime / 60).toString().padStart(2, '0')}:${(remainingTime % 60).toString().padStart(2, '0')}`;
+  const {
+    tasks,
+    addTask,
+    completeTask,
+    getActiveTasks,
+  } = useTaskStore();
 
-  // Handle status change announcements
-  useEffect(() => {
-    if (isRunning && !isPaused) {
-      setAnnouncement('计时器已开始');
-    } else if (isPaused) {
-      setAnnouncement('计时器已暂停');
-    } else if (isCompleted) {
-      setAnnouncement('计时器已完成');
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const activeTasks = getActiveTasks();
+  const completedTasks = tasks.filter(t => t.completed);
+
+  // 根据当前状态决定时间显示格式
+  const getTimeDisplay = () => {
+    // 确保 timeLeft 有效
+    const safeTimeLeft = timeLeft || 1500; // 默认25分钟
+    
+    if (isRunning || isPaused) {
+      // 运行或暂停状态显示 MM:SS 格式
+      const minutes = Math.floor(safeTimeLeft / 60);
+      const seconds = safeTimeLeft % 60;
+      return {
+        time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+        unit: null
+      };
+    } else {
+      // 空闲状态显示分钟数
+      const minutes = Math.floor(safeTimeLeft / 60);
+      return {
+        time: minutes.toString(),
+        unit: 'minutes'
+      };
     }
-  }, [isRunning, isPaused, isCompleted]);
+  };
 
-  const colors = modeColors[currentMode];
-  const suggested = suggestedNextMode();
+  const { time, unit } = getTimeDisplay();
+
+  const handleModeChange = (mode: TimerMode) => {
+    if (!isRunning) {
+      switchMode(mode);
+    }
+  };
+
+  const handleTimerAction = () => {
+    if (isRunning) {
+      pauseTimer();
+    } else {
+      startTimer();
+    }
+  };
+
+  const handleTaskToggle = (taskId: string) => {
+    completeTask(taskId);
+  };
+
+  const handleTaskAdd = (title: string, estimatedPomodoros: number) => {
+    addTask({ title, estimatedPomodoros });
+  };
+
+  // Mode labels mapping
+  const modeLabels = {
+    work: '专注',
+    shortBreak: '短休息',
+    longBreak: '长休息',
+  };
 
   return (
-    <div 
-      className="flex flex-col items-center space-y-8 p-6 max-w-4xl mx-auto"
-      data-testid="pomodoro-timer"
-    >
-      {/* Screen reader announcement */}
-      <div 
-        role="status" 
-        aria-live="polite" 
-        className="sr-only"
-        hidden
-      >
-        {announcement}
-      </div>
-
-      {/* Mode Tabs */}
-      <div className="flex space-x-2 bg-gray-50 p-2 rounded-lg w-full max-w-md">
-        {(['work', 'shortBreak', 'longBreak'] as TimerMode[]).map((mode) => (
-          <ModeTab
-            key={mode}
-            mode={mode}
-            isActive={currentMode === mode}
-            isDisabled={isRunning}
-            onClick={switchMode}
-          />
-        ))}
-      </div>
-
-      {/* Timer Display */}
-      <div className="text-center space-y-4">
-        {/* Mode Info */}
-        <div className="space-y-2">
-          <h1 className={`text-2xl font-semibold ${colors.text}`}>
-            {currentModeInfo.label}
-          </h1>
-          <p className="text-gray-600">
-            {currentModeInfo.description}
-          </p>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
+      <div className="timer-card" data-testid="pomodoro-timer">
+        {/* Header */}
+        <div className="header">
+          <div className="title">专注时钟</div>
+          <button className="settings-btn" title="设置">
+            ⚙️
+          </button>
         </div>
 
-        {/* Progress Circle with Timer */}
-        <ProgressCircle 
-          progress={progress} 
-          color={colors.text}
-        >
-          <div 
-            className="text-center"
-            role="timer"
-            aria-label="番茄钟计时器"
-          >
-            <div 
-              className={`text-6xl md:text-8xl font-mono font-light ${colors.text}`}
-              data-testid="timer-display"
-            >
-              {formattedTime}
-            </div>
-            {isCompleted && (
-              <div className="text-xl font-semibold text-green-600 mt-2">
-                完成！
-              </div>
-            )}
-          </div>
-        </ProgressCircle>
+        {/* Timer Circle */}
+        <div className="timer-circle">
+          <div className="timer-display" data-testid="timer-display">{time}</div>
+          {unit && <div className="timer-unit">{unit}</div>}
+        </div>
 
-        {/* Timer Controls */}
-        <TimerControls
-          isRunning={isRunning}
-          isPaused={isPaused}
-          isIdle={isIdle}
-          isCompleted={isCompleted}
-          onStart={start}
-          onPause={pause}
-          onReset={reset}
-          modeColor={currentMode}
+        {/* Mode Tabs */}
+        <div className="mode-tabs">
+          <ModeTab
+            mode="work"
+            label={modeLabels.work}
+            isActive={currentMode === 'work'}
+            onClick={() => handleModeChange('work')}
+          />
+          <ModeTab
+            mode="shortBreak"
+            label={modeLabels.shortBreak}
+            isActive={currentMode === 'shortBreak'}
+            onClick={() => handleModeChange('shortBreak')}
+          />
+          <ModeTab
+            mode="longBreak"
+            label={modeLabels.longBreak}
+            isActive={currentMode === 'longBreak'}
+            onClick={() => handleModeChange('longBreak')}
+          />
+        </div>
+
+        {/* Control Buttons */}
+        <div className="controls">
+          <button className="control-btn play-btn" onClick={handleTimerAction} aria-label={isRunning ? '暂停' : '开始'}>
+            {isRunning ? '⏸' : '▶'}
+          </button>
+          <button className="control-btn reset-btn" onClick={resetTimer} aria-label="重置">
+            ↻
+          </button>
+        </div>
+
+        {/* Tasks Section */}
+        <div className="section-header">
+          <div className="section-title">今日任务</div>
+          <button className="add-btn" onClick={() => setShowAddForm(true)}>
+            +
+          </button>
+        </div>
+
+        <AddTaskForm
+          isOpen={showAddForm}
+          onClose={() => setShowAddForm(false)}
+          onAdd={handleTaskAdd}
         />
-      </div>
 
-      {/* Completion Suggestions */}
-      {isCompleted && (
-        <div className="text-center space-y-3">
-          {shouldShowNotification() && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-blue-800">
-                {getNotificationMessage()}
-              </p>
+        <div className="task-list">
+          {activeTasks.length > 0 ? (
+            activeTasks.slice(0, 3).map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={handleTaskToggle}
+              />
+            ))
+          ) : (
+            <div className="empty-tasks">
+              暂无任务，点击 + 添加任务
             </div>
           )}
-          
-          <div className="text-gray-600">
-            建议：{modeLabels[suggested]}
+        </div>
+
+        {/* Statistics */}
+        <div className="section-header">
+          <div className="section-title">今日统计</div>
+        </div>
+        <div className="stats">
+          <div className="stat-card">
+            <div className="stat-number">{todayPomodoros || 0}</div>
+            <div className="stat-label">完成番茄</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{Math.round((todayWorkTime || 0) / 60)}</div>
+            <div className="stat-label">专注分钟</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{completedTasks.length}</div>
+            <div className="stat-label">完成任务</div>
           </div>
         </div>
-      )}
-
-      {/* Statistics */}
-      <Statistics
-        todayPomodoros={sessionStats.todayPomodoros}
-        todayWorkTime={sessionStats.todayWorkTime}
-        currentCycleProgress={sessionStats.currentCycleProgress}
-        sessionsUntilLongBreak={sessionStats.sessionsUntilLongBreak}
-      />
-    </div>
+      </div>
+    </>
   );
 }; 
