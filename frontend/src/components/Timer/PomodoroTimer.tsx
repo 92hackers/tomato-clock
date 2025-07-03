@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTimer } from '../../hooks/useTimer';
 import { useTaskStore } from '../../store/taskStore';
 import { formatDuration } from '../../utils/timeFormatter';
@@ -10,13 +11,8 @@ import type { Task } from '../../types/task';
 // 严格按照设计稿的样式
 const styles = `
   .timer-card {
-    background-color: white;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    width: 350px;
-    padding: 30px;
-    margin: 0 auto;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    width: 100%;
+    font-family: inherit;
   }
 
   .header {
@@ -416,6 +412,7 @@ const AddTaskForm: React.FC<AddTaskFormProps> = ({ isOpen, onClose, onAdd }) => 
 
 // Main PomodoroTimer Component
 export const PomodoroTimer: React.FC = () => {
+  const router = useRouter();
   const {
     currentMode,
     timeLeft,
@@ -495,6 +492,11 @@ export const PomodoroTimer: React.FC = () => {
     longBreak: '长休息',
   };
 
+  // 处理设置按钮点击
+  const handleSettingsClick = () => {
+    router.push('/settings');
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
@@ -502,7 +504,7 @@ export const PomodoroTimer: React.FC = () => {
         {/* Header */}
         <div className="header">
           <div className="title">专注时钟</div>
-          <button className="settings-btn" title="设置">
+          <button className="settings-btn" title="设置" onClick={handleSettingsClick}>
             ⚙️
           </button>
         </div>

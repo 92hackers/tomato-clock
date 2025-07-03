@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PomodoroTimer } from '../components/Timer/PomodoroTimer';
-import { PageLayout } from '../components/Layout/PageLayout';
+import { SettingsPage } from '../../pages/SettingsPage';
+import { PageLayout } from '../../components/Layout/PageLayout';
 
-export default function HomePage() {
+export default function Settings() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -13,7 +13,7 @@ export default function HomePage() {
 
   if (!mounted) {
     return (
-      <PageLayout data-testid="loading-page">
+      <PageLayout data-testid="loading-settings">
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -35,8 +35,8 @@ export default function HomePage() {
   }
 
   return (
-    <PageLayout data-testid="home-page">
-      <PomodoroTimer />
+    <PageLayout data-testid="settings-layout">
+      <SettingsPage />
     </PageLayout>
   );
-}
+} 

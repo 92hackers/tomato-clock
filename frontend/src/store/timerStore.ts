@@ -28,7 +28,9 @@ interface TimerState {
   
   // Settings
   settings: TimerSettings;
-  
+}
+
+interface TimerActions {
   // Actions
   startTimer: () => void;
   pauseTimer: () => void;
@@ -41,9 +43,11 @@ interface TimerState {
   setState: (updates: Partial<TimerState>) => void;
   
   // Getters
-  getTimerState: () => TimerStore;
+  getTimerState: () => TimerState;
   getCurrentProgress: () => number;
 }
+
+type TimerStoreState = TimerState & TimerActions;
 
 const DEFAULT_SETTINGS: TimerSettings = {
   workDuration: 25 * 60, // 25 minutes
@@ -51,7 +55,7 @@ const DEFAULT_SETTINGS: TimerSettings = {
   longBreakDuration: 15 * 60, // 15 minutes
   sessionsUntilLongBreak: 4,
   autoStartBreaks: false,
-  autoStartPomodoros: false,
+  autoStartWork: false,
   soundEnabled: true,
   notificationsEnabled: true,
 };
@@ -110,7 +114,7 @@ const recalculateStatistics = (
   return { todayWorkTime, todayCompletedSessions, totalWorkTime };
 };
 
-export const useTimerStore = create<TimerState>()(
+export const useTimerStore = create<TimerStoreState>()(
   persist(
     (set, get) => ({
       // Initial state
@@ -194,7 +198,7 @@ export const useTimerStore = create<TimerState>()(
         // Auto-start next session if enabled
         if (
           (state.currentMode === 'work' && state.settings.autoStartBreaks) ||
-          (state.currentMode !== 'work' && state.settings.autoStartPomodoros)
+          (state.currentMode !== 'work' && state.settings.autoStartWork)
         ) {
           setTimeout(() => {
             get().startTimer();
@@ -241,14 +245,13 @@ export const useTimerStore = create<TimerState>()(
       },
 
       // Getters
-      getTimerState: (): TimerStore => {
+      getTimerState: (): TimerState => {
         const state = get();
         return {
           timeLeft: state.timeLeft,
           currentMode: state.currentMode,
           isRunning: state.isRunning,
           isPaused: state.isPaused,
-          isIdle: !state.isRunning && !state.isPaused && !state.isCompleted,
           isCompleted: state.isCompleted,
           currentSession: state.currentSession,
           sessionsUntilLongBreak: state.sessionsUntilLongBreak,

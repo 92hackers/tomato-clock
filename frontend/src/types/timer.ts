@@ -33,27 +33,23 @@ export interface TimerSettings {
 
 export interface TimerState {
   // Current timer state
+  timeLeft: number; // in seconds (matches store implementation)
   currentMode: TimerMode;
-  status: TimerStatus;
-  remainingTime: number; // in seconds
-  duration: number; // current session duration in seconds
+  isRunning: boolean;
+  isPaused: boolean;
+  isCompleted: boolean;
 
   // Session tracking
-  currentSessionId: string | null;
-  sessionsCompleted: number;
+  currentSession: number;
+  sessionsUntilLongBreak: number;
+  completedCycles: number;
+
+  // Statistics
+  todayPomodoros: number;
+  todayWorkTime: number;
 
   // Settings
   settings: TimerSettings;
-
-  // History and stats
-  completedSessions: Session[];
-  currentTask: Task | null;
-  tasks: Task[];
-
-  // Computed stats
-  todayWorkTime: number; // in seconds
-  totalWorkTime: number; // in seconds
-  todayCompletedSessions: number;
 }
 
 export interface TimerActions {

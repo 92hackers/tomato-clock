@@ -1,9 +1,10 @@
 import React from 'react';
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PomodoroTimerCard } from '../PomodoroTimerCard';
 import { useTimerStore } from '../../../store/timerStore';
 import { useTaskStore } from '../../../store/taskStore';
+import type { TimerMode } from '../../../types/timer';
 
 // Mock the stores
 jest.mock('../../../store/timerStore', () => ({
@@ -17,7 +18,7 @@ jest.mock('../../../store/taskStore', () => ({
 describe('PomodoroTimerCard', () => {
   const mockTimerStore = {
     timeLeft: 1500, // 25 minutes
-    currentMode: 'work',
+    currentMode: 'work' as TimerMode,
     isRunning: false,
     isPaused: false,
     isIdle: true,
@@ -26,14 +27,14 @@ describe('PomodoroTimerCard', () => {
     sessionsUntilLongBreak: 4,
     completedCycles: 0,
     todayPomodoros: 2,
-    todayWorkTime: 50 * 60, // 50 minutes
+    todayWorkTime: 3000, // 50 minutes
     settings: {
-      workDuration: 25 * 60,
-      shortBreakDuration: 5 * 60,
-      longBreakDuration: 15 * 60,
+      workDuration: 1500,
+      shortBreakDuration: 300,
+      longBreakDuration: 900,
       sessionsUntilLongBreak: 4,
       autoStartBreaks: false,
-      autoStartPomodoros: false,
+      autoStartWork: false,
       soundEnabled: true,
       notificationsEnabled: true,
     },
@@ -43,26 +44,9 @@ describe('PomodoroTimerCard', () => {
     completeTimer: jest.fn(),
     switchMode: jest.fn(),
     updateSettings: jest.fn(),
-    getCurrentProgress: jest.fn().mockReturnValue(25), // 25% progress
-    getTimerState: jest.fn().mockReturnValue({
-      timeLeft: 1500,
-      currentMode: 'work',
-      isRunning: false,
-      isPaused: false,
-      isIdle: true,
-      isCompleted: false,
-      settings: {
-        workDuration: 25 * 60,
-        shortBreakDuration: 5 * 60,
-        longBreakDuration: 15 * 60,
-        sessionsUntilLongBreak: 4,
-        autoStartBreaks: false,
-        autoStartPomodoros: false,
-        soundEnabled: true,
-        notificationsEnabled: true,
-      },
-    }),
     setState: jest.fn(),
+    getTimerState: jest.fn(),
+    getCurrentProgress: jest.fn(() => 0.5),
   };
 
   const mockTaskStore = {
@@ -81,7 +65,7 @@ describe('PomodoroTimerCard', () => {
         id: '2',
         title: '阅读一章书',
         estimatedPomodoros: 2,
-        completedPomodoros: 0,
+        completedPomodoros: 1,
         completed: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -98,7 +82,7 @@ describe('PomodoroTimerCard', () => {
     getSelectedTask: jest.fn(),
     getTodayTasks: jest.fn(),
     getCompletedTasks: jest.fn(),
-    getActiveTasks: jest.fn().mockReturnValue([
+    getActiveTasks: jest.fn(() => [
       {
         id: '1',
         title: '完成番茄时钟设计',
@@ -113,7 +97,7 @@ describe('PomodoroTimerCard', () => {
         id: '2',
         title: '阅读一章书',
         estimatedPomodoros: 2,
-        completedPomodoros: 0,
+        completedPomodoros: 1,
         completed: false,
         createdAt: new Date(),
         updatedAt: new Date(),

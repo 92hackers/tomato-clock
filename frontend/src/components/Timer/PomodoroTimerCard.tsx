@@ -10,13 +10,7 @@ import type { Task } from '../../types/task';
 // 严格按照 index.html 设计稿的样式实现
 const styles = `
   .main-card {
-    background-color: white;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    width: 350px;
-    padding: 30px;
-    margin: 0 auto;
-    position: relative;
+    width: 100%;
     transition: transform 0.2s;
   }
 
