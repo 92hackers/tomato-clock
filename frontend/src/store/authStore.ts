@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  AuthStore, 
-  AuthState, 
-  LoginCredentials, 
-  RegisterCredentials, 
+import {
+  AuthStore,
+  AuthState,
+  LoginCredentials,
+  RegisterCredentials,
   User,
-  AUTH_STORAGE_KEYS 
+  AUTH_STORAGE_KEYS,
 } from '../types/auth';
 import { authStorage } from '../utils/auth';
 
@@ -24,9 +24,12 @@ const mockAuthAPI = {
   login: async (credentials: LoginCredentials) => {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // 模拟登录验证
-    if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
+    if (
+      credentials.email === 'test@example.com' &&
+      credentials.password === 'password123'
+    ) {
       return {
         success: true,
         data: {
@@ -48,12 +51,12 @@ const mockAuthAPI = {
   register: async (credentials: RegisterCredentials) => {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     // 模拟注册验证
     if (credentials.username === 'existinguser') {
       throw new Error('用户名已存在');
     }
-    
+
     return {
       success: true,
       data: {
@@ -83,7 +86,7 @@ const mockAuthAPI = {
     await new Promise(resolve => setTimeout(resolve, 300));
     const token = authStorage.getToken();
     const user = authStorage.getUser();
-    
+
     if (token && user) {
       return {
         success: true,
@@ -103,17 +106,17 @@ export const useAuthStore = create<AuthStore>()(
       // 登录操作
       login: async (credentials: LoginCredentials) => {
         set({ isLoading: true, error: null });
-        
+
         try {
           const response = await mockAuthAPI.login(credentials);
-          
+
           if (response.success && response.data) {
             const { user, token } = response.data;
-            
+
             // 存储到 localStorage
             authStorage.setToken(token);
             authStorage.setUser(user);
-            
+
             set({
               user,
               token,
@@ -133,17 +136,17 @@ export const useAuthStore = create<AuthStore>()(
       // 注册操作
       register: async (credentials: RegisterCredentials) => {
         set({ isLoading: true, error: null });
-        
+
         try {
           const response = await mockAuthAPI.register(credentials);
-          
+
           if (response.success && response.data) {
             const { user, token } = response.data;
-            
+
             // 存储到 localStorage
             authStorage.setToken(token);
             authStorage.setUser(user);
-            
+
             set({
               user,
               token,
@@ -176,13 +179,13 @@ export const useAuthStore = create<AuthStore>()(
       // 检查认证状态
       checkAuth: async () => {
         set({ isLoading: true });
-        
+
         try {
           const response = await mockAuthAPI.checkAuth();
-          
+
           if (response.success && response.data) {
             const { user, token } = response.data;
-            
+
             set({
               user,
               token,
@@ -205,11 +208,11 @@ export const useAuthStore = create<AuthStore>()(
       refreshToken: async () => {
         try {
           const response = await mockAuthAPI.refreshToken();
-          
+
           if (response.success && response.data) {
             const { token } = response.data;
             authStorage.setToken(token);
-            
+
             set({ token });
           }
         } catch (error) {
@@ -220,11 +223,11 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-store',
-      partialize: (state) => ({
+      partialize: state => ({
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
     }
   )
-); 
+);

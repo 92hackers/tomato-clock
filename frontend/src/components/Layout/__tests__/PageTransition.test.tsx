@@ -22,13 +22,13 @@ describe('PageTransition', () => {
   describe('Basic Rendering', () => {
     it('should render children with transition container', () => {
       mockPathname.mockReturnValue('/');
-      
+
       render(
-        <PageTransition data-testid="transition-wrapper">
-          <div data-testid="child-content">Test Content</div>
+        <PageTransition data-testid='transition-wrapper'>
+          <div data-testid='child-content'>Test Content</div>
         </PageTransition>
       );
-      
+
       expect(screen.getByTestId('transition-wrapper')).toBeInTheDocument();
       expect(screen.getByTestId('child-content')).toBeInTheDocument();
       expect(screen.getByText('Test Content')).toBeInTheDocument();
@@ -36,26 +36,26 @@ describe('PageTransition', () => {
 
     it('should apply transition container classes', () => {
       mockPathname.mockReturnValue('/');
-      
+
       render(
-        <PageTransition data-testid="transition-wrapper">
+        <PageTransition data-testid='transition-wrapper'>
           <div>Content</div>
         </PageTransition>
       );
-      
+
       const container = screen.getByTestId('transition-wrapper');
       expect(container).toHaveClass('page-transition-container');
     });
 
     it('should render content with transition class', () => {
       mockPathname.mockReturnValue('/');
-      
+
       render(
         <PageTransition>
           <div>Content</div>
         </PageTransition>
       );
-      
+
       const content = document.querySelector('.page-transition-content');
       expect(content).toBeInTheDocument();
     });
@@ -65,7 +65,7 @@ describe('PageTransition', () => {
     it('should handle pathname changes without throwing errors', () => {
       mockPathname.mockReturnValue('/');
       const { rerender } = render(
-        <PageTransition data-testid="transition-container">
+        <PageTransition data-testid='transition-container'>
           <div>Home Content</div>
         </PageTransition>
       );
@@ -74,7 +74,7 @@ describe('PageTransition', () => {
       mockPathname.mockReturnValue('/settings');
       expect(() => {
         rerender(
-          <PageTransition data-testid="transition-container">
+          <PageTransition data-testid='transition-container'>
             <div>Settings Content</div>
           </PageTransition>
         );
@@ -88,7 +88,7 @@ describe('PageTransition', () => {
     it('should handle navigation back to home', () => {
       mockPathname.mockReturnValue('/settings');
       const { rerender } = render(
-        <PageTransition data-testid="transition-container">
+        <PageTransition data-testid='transition-container'>
           <div>Settings Content</div>
         </PageTransition>
       );
@@ -97,7 +97,7 @@ describe('PageTransition', () => {
       mockPathname.mockReturnValue('/');
       expect(() => {
         rerender(
-          <PageTransition data-testid="transition-container">
+          <PageTransition data-testid='transition-container'>
             <div>Home Content</div>
           </PageTransition>
         );
@@ -111,7 +111,7 @@ describe('PageTransition', () => {
   describe('CSS Styles', () => {
     it('should inject transition styles into document', () => {
       mockPathname.mockReturnValue('/');
-      
+
       render(
         <PageTransition>
           <div>Content</div>
@@ -125,16 +125,16 @@ describe('PageTransition', () => {
 
     it('should have proper CSS class structure', () => {
       mockPathname.mockReturnValue('/');
-      
+
       render(
-        <PageTransition data-testid="transition-wrapper">
+        <PageTransition data-testid='transition-wrapper'>
           <div>Content</div>
         </PageTransition>
       );
 
       const container = screen.getByTestId('transition-wrapper');
       expect(container).toHaveClass('page-transition-container');
-      
+
       const content = container.querySelector('.page-transition-content');
       expect(content).toBeInTheDocument();
     });
@@ -143,7 +143,7 @@ describe('PageTransition', () => {
   describe('Page Level Handling', () => {
     it('should handle unknown pages gracefully', () => {
       mockPathname.mockReturnValue('/unknown-page');
-      
+
       expect(() => {
         render(
           <PageTransition>
@@ -155,7 +155,7 @@ describe('PageTransition', () => {
 
     it('should handle undefined pathname', () => {
       mockPathname.mockReturnValue(undefined);
-      
+
       expect(() => {
         render(
           <PageTransition>
@@ -182,7 +182,7 @@ describe('PageTransition', () => {
     it('should handle rapid pathname changes', () => {
       mockPathname.mockReturnValue('/');
       const { rerender } = render(
-        <PageTransition data-testid="transition-container">
+        <PageTransition data-testid='transition-container'>
           <div>Home</div>
         </PageTransition>
       );
@@ -190,14 +190,14 @@ describe('PageTransition', () => {
       // Rapid changes should not break the component
       mockPathname.mockReturnValue('/settings');
       rerender(
-        <PageTransition data-testid="transition-container">
+        <PageTransition data-testid='transition-container'>
           <div>Settings</div>
         </PageTransition>
       );
 
       mockPathname.mockReturnValue('/');
       rerender(
-        <PageTransition data-testid="transition-container">
+        <PageTransition data-testid='transition-container'>
           <div>Home Again</div>
         </PageTransition>
       );
@@ -206,4 +206,4 @@ describe('PageTransition', () => {
       expect(screen.getByText('Home Again')).toBeInTheDocument();
     });
   });
-}); 
+});

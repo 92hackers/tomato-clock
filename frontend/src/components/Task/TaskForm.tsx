@@ -16,25 +16,31 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onConfirm, onCancel }) => {
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+  isOpen,
+  onConfirm,
+  onCancel,
+}) => {
   if (!isOpen) return null;
 
   return (
-    <div className="dialog-overlay">
-      <div className="dialog">
-        <h3 className="dialog-title">确认操作</h3>
-        <p className="dialog-message">确定要放弃更改吗？所有未保存的内容将丢失。</p>
-        <div className="dialog-actions">
-          <button 
-            type="button" 
-            className="dialog-button secondary" 
+    <div className='dialog-overlay'>
+      <div className='dialog'>
+        <h3 className='dialog-title'>确认操作</h3>
+        <p className='dialog-message'>
+          确定要放弃更改吗？所有未保存的内容将丢失。
+        </p>
+        <div className='dialog-actions'>
+          <button
+            type='button'
+            className='dialog-button secondary'
             onClick={onCancel}
           >
             继续编辑
           </button>
-          <button 
-            type="button" 
-            className="dialog-button primary" 
+          <button
+            type='button'
+            className='dialog-button primary'
             onClick={onConfirm}
           >
             确定
@@ -125,25 +131,29 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className={`task-form ${className}`} noValidate>
+      <form
+        onSubmit={handleSubmit}
+        className={`task-form ${className}`}
+        noValidate
+      >
         {/* Title Field */}
-        <div className="form-group">
-          <label htmlFor="task-title" className="input-label">
+        <div className='form-group'>
+          <label htmlFor='task-title' className='input-label'>
             任务名称
           </label>
           <input
-            id="task-title"
+            id='task-title'
             ref={titleInputRef}
-            type="text"
+            type='text'
             className={`text-input ${errors.title ? 'error' : ''}`}
-            placeholder="输入任务名称"
+            placeholder='输入任务名称'
             value={formData.title}
             onChange={handleTitleChange}
-            aria-describedby={errors.title ? "title-error" : undefined}
+            aria-describedby={errors.title ? 'title-error' : undefined}
             required
           />
           {errors.title && (
-            <div id="title-error" className="error-message" role="alert">
+            <div id='title-error' className='error-message' role='alert'>
               {errors.title}
             </div>
           )}
@@ -151,7 +161,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 
         {/* Estimated Pomodoros Field */}
         <NumberSelector
-          label="预计番茄数"
+          label='预计番茄数'
           value={formData.estimatedPomodoros}
           min={1}
           max={20}
@@ -159,45 +169,45 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           onDecrement={decrementPomodoros}
         />
         {errors.estimatedPomodoros && (
-          <div className="error-message" role="alert">
+          <div className='error-message' role='alert'>
             {errors.estimatedPomodoros}
           </div>
         )}
 
         {/* Notes Field */}
-        <div className="form-group">
-          <label htmlFor="task-notes" className="input-label">
+        <div className='form-group'>
+          <label htmlFor='task-notes' className='input-label'>
             备注
           </label>
           <input
-            id="task-notes"
-            type="text"
+            id='task-notes'
+            type='text'
             className={`text-input ${errors.notes ? 'error' : ''}`}
-            placeholder="添加备注（可选）"
+            placeholder='添加备注（可选）'
             value={formData.notes || ''}
             onChange={handleNotesChange}
-            aria-describedby={errors.notes ? "notes-error" : undefined}
+            aria-describedby={errors.notes ? 'notes-error' : undefined}
           />
           {errors.notes && (
-            <div id="notes-error" className="error-message" role="alert">
+            <div id='notes-error' className='error-message' role='alert'>
               {errors.notes}
             </div>
           )}
         </div>
 
         {/* Form Actions */}
-        <div className="form-actions">
+        <div className='form-actions'>
           <button
-            type="submit"
-            className="submit-button"
+            type='submit'
+            className='submit-button'
             disabled={!isValid || isSubmitting}
-            aria-describedby="submit-help"
+            aria-describedby='submit-help'
           >
             {isSubmitting ? '保存中...' : '保存'}
           </button>
           <button
-            type="button"
-            className="cancel-button"
+            type='button'
+            className='cancel-button'
             onClick={handleCancel}
             disabled={isSubmitting}
           >
@@ -205,7 +215,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           </button>
         </div>
 
-        <div id="submit-help" className="sr-only">
+        <div id='submit-help' className='sr-only'>
           {isValid ? '表单已准备好提交' : '请填写所有必填字段'}
         </div>
       </form>
@@ -217,4 +227,4 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       />
     </>
   );
-}; 
+};

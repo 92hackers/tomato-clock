@@ -8,9 +8,9 @@ interface PageLayoutProps {
   'data-testid'?: string;
 }
 
-export const PageLayout: React.FC<PageLayoutProps> = ({ 
-  children, 
-  'data-testid': testId 
+export const PageLayout: React.FC<PageLayoutProps> = ({
+  children,
+  'data-testid': testId,
 }) => {
   const containerStyle: React.CSSProperties = {
     height: '100vh',
@@ -29,7 +29,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
     backgroundColor: 'white',
     borderRadius: '20px',
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
     // 尺寸和布局
     width: '100%',
     maxWidth: '350px', // 固定为350px，与原来的卡片宽度一致
@@ -46,10 +47,10 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   return (
     <main style={containerStyle} data-testid={testId}>
       <div style={contentStyle}>
-        <PageTransition data-testid="page-transition">
+        <PageTransition data-testid='page-transition'>
           {children}
         </PageTransition>
       </div>
     </main>
   );
-}; 
+};

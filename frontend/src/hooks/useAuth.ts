@@ -9,14 +9,14 @@ export interface UseAuthReturn {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // 计算属性
   isLoggedIn: boolean;
   hasError: boolean;
   isAuthenticating: boolean;
   currentUser: User | null;
   userDisplayName: string | null;
-  
+
   // 基础操作
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
@@ -24,7 +24,7 @@ export interface UseAuthReturn {
   clearError: () => void;
   checkAuth: () => Promise<void>;
   refreshToken: () => Promise<void>;
-  
+
   // 便捷方法
   loginWithCredentials: (credentials: LoginCredentials) => Promise<void>;
   registerWithCredentials: (credentials: RegisterCredentials) => Promise<void>;
@@ -100,14 +100,14 @@ export const useAuth = (): UseAuthReturn => {
     isAuthenticated: authStore.isAuthenticated,
     isLoading: authStore.isLoading,
     error: authStore.error,
-    
+
     // 计算属性
     isLoggedIn,
     hasError,
     isAuthenticating,
     currentUser,
     userDisplayName,
-    
+
     // 基础操作
     login: authStore.login,
     register: authStore.register,
@@ -115,7 +115,7 @@ export const useAuth = (): UseAuthReturn => {
     clearError: authStore.clearError,
     checkAuth: authStore.checkAuth,
     refreshToken: authStore.refreshToken,
-    
+
     // 便捷方法
     loginWithCredentials,
     registerWithCredentials,
@@ -124,4 +124,4 @@ export const useAuth = (): UseAuthReturn => {
     initializeAuth,
     renewToken,
   };
-}; 
+};

@@ -21,16 +21,16 @@ export const FormHeader: React.FC<FormHeaderProps> = ({
   return (
     <div className={`form-header ${className}`}>
       <button
-        type="button"
-        className="back-button"
+        type='button'
+        className='back-button'
         onClick={onBack}
         onKeyDown={handleKeyDown}
-        aria-label="返回"
+        aria-label='返回'
         tabIndex={0}
       >
         ←
       </button>
-      <h1 className="title">{title}</h1>
+      <h1 className='title'>{title}</h1>
     </div>
   );
-}; 
+};

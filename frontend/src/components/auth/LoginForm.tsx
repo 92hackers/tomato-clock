@@ -9,20 +9,26 @@ interface LoginFormProps {
   isLoading?: boolean;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, onChange, isLoading }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({
+  onSubmit,
+  onChange,
+  isLoading,
+}) => {
   const { login, isLoading: authStoreLoading, error } = useAuthStore();
-  const [formData, setFormData] = useState<LoginFormData>(getDefaultLoginFormData());
+  const [formData, setFormData] = useState<LoginFormData>(
+    getDefaultLoginFormData()
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear field-specific error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
-    
+
     // Call onChange callback if provided
     if (onChange) {
       onChange();
@@ -31,7 +37,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, onChange, isLoad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     const validationResult = validateLoginForm(formData);
     if (!validationResult.isValid) {
@@ -61,63 +67,46 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, onChange, isLoad
   const formIsLoading = isLoading || authStoreLoading;
 
   return (
-    <form onSubmit={handleSubmit} role="form" noValidate>
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} role='form' noValidate>
+      <div className='space-y-4'>
         {/* 错误提示 */}
-        {error && (
-          <div className="text-red-500 text-sm">
-            {error}
-          </div>
-        )}
-        
+        {error && <div className='text-red-500 text-sm'>{error}</div>}
+
         {/* 邮箱输入 */}
         <div>
-          <label htmlFor="email">
-            邮箱
-          </label>
+          <label htmlFor='email'>邮箱</label>
           <input
-            id="email"
-            name="email"
-            type="text"
+            id='email'
+            name='email'
+            type='text'
             value={formData.email}
             onChange={handleChange}
             tabIndex={1}
           />
-          {errors.email && (
-            <div className="text-red-500">
-              {errors.email}
-            </div>
-          )}
+          {errors.email && <div className='text-red-500'>{errors.email}</div>}
         </div>
 
         {/* 密码输入 */}
         <div>
-          <label htmlFor="password">
-            密码
-          </label>
+          <label htmlFor='password'>密码</label>
           <input
-            id="password"
-            name="password"
-            type="password"
+            id='password'
+            name='password'
+            type='password'
             value={formData.password}
             onChange={handleChange}
             tabIndex={2}
           />
           {errors.password && (
-            <div className="text-red-500">
-              {errors.password}
-            </div>
+            <div className='text-red-500'>{errors.password}</div>
           )}
         </div>
 
         {/* 提交按钮 */}
-        <button
-          type="submit"
-          disabled={formIsLoading}
-        >
+        <button type='submit' disabled={formIsLoading}>
           {formIsLoading ? '登录中...' : '登录'}
         </button>
       </div>
     </form>
   );
-}; 
+};

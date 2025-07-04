@@ -102,7 +102,7 @@ describe('ProtectedRoute', () => {
       } as any);
 
       render(
-        <ProtectedRoute loginPath="/custom-login">
+        <ProtectedRoute loginPath='/custom-login'>
           <TestComponent />
         </ProtectedRoute>
       );
@@ -133,7 +133,9 @@ describe('ProtectedRoute', () => {
       );
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/auth/login?returnUrl=%2Fdashboard');
+        expect(mockPush).toHaveBeenCalledWith(
+          '/auth/login?returnUrl=%2Fdashboard'
+        );
       });
     });
 
@@ -187,8 +189,8 @@ describe('ProtectedRoute', () => {
       const CustomFallback = () => <div>Please Login</div>;
 
       render(
-        <ProtectedRoute 
-          redirectOnUnauth={false} 
+        <ProtectedRoute
+          redirectOnUnauth={false}
           fallbackComponent={<CustomFallback />}
         >
           <TestComponent />
@@ -204,17 +206,17 @@ describe('ProtectedRoute', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { 
-          id: '1', 
-          username: 'admin', 
+        user: {
+          id: '1',
+          username: 'admin',
           email: 'admin@example.com',
-          role: 'admin' 
+          role: 'admin',
         },
         error: null,
       } as any);
 
       render(
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute requiredRole='admin'>
           <TestComponent />
         </ProtectedRoute>
       );
@@ -226,17 +228,17 @@ describe('ProtectedRoute', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { 
-          id: '1', 
-          username: 'user', 
+        user: {
+          id: '1',
+          username: 'user',
           email: 'user@example.com',
-          role: 'user' 
+          role: 'user',
         },
         error: null,
       } as any);
 
       render(
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute requiredRole='admin'>
           <TestComponent />
         </ProtectedRoute>
       );
@@ -248,11 +250,11 @@ describe('ProtectedRoute', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { 
-          id: '1', 
-          username: 'moderator', 
+        user: {
+          id: '1',
+          username: 'moderator',
           email: 'mod@example.com',
-          role: 'moderator' 
+          role: 'moderator',
         },
         error: null,
       } as any);
@@ -325,4 +327,4 @@ describe('ProtectedRoute', () => {
       expect(mockInitializeAuth).toHaveBeenCalled();
     });
   });
-}); 
+});

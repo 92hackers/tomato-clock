@@ -323,11 +323,13 @@ interface ModeTabProps {
   onClick: () => void;
 }
 
-const ModeTab: React.FC<ModeTabProps> = ({ mode, label, isActive, onClick }) => (
-  <button
-    className={`mode-tab ${isActive ? 'active' : ''}`}
-    onClick={onClick}
-  >
+const ModeTab: React.FC<ModeTabProps> = ({
+  mode,
+  label,
+  isActive,
+  onClick,
+}) => (
+  <button className={`mode-tab ${isActive ? 'active' : ''}`} onClick={onClick}>
     {label}
   </button>
 );
@@ -339,8 +341,8 @@ interface TaskItemProps {
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle }) => (
-  <div className="task-item">
-    <div className="task-left">
+  <div className='task-item'>
+    <div className='task-left'>
       <div
         className={`task-checkbox ${task.completed ? 'completed' : ''}`}
         onClick={() => onToggle(task.id)}
@@ -349,7 +351,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle }) => (
         {task.title}
       </span>
     </div>
-    <span className="task-progress">
+    <span className='task-progress'>
       {task.completedPomodoros}/{task.estimatedPomodoros}
     </span>
   </div>
@@ -371,11 +373,7 @@ export const PomodoroTimer: React.FC = () => {
     switchMode,
   } = useTimer();
 
-  const {
-    tasks,
-    completeTask,
-    getActiveTasks,
-  } = useTaskStore();
+  const { tasks, completeTask, getActiveTasks } = useTaskStore();
 
   const activeTasks = getActiveTasks();
   const completedTasks = tasks.filter(t => t.completed);
@@ -384,21 +382,21 @@ export const PomodoroTimer: React.FC = () => {
   const getTimeDisplay = () => {
     // 确保 timeLeft 有效
     const safeTimeLeft = timeLeft || 1500; // 默认25分钟
-    
+
     if (isRunning || isPaused) {
       // 运行或暂停状态显示 MM:SS 格式
       const minutes = Math.floor(safeTimeLeft / 60);
       const seconds = safeTimeLeft % 60;
       return {
         time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
-        unit: null
+        unit: null,
       };
     } else {
       // 空闲状态显示分钟数
       const minutes = Math.floor(safeTimeLeft / 60);
       return {
         time: minutes.toString(),
-        unit: 'minutes'
+        unit: 'minutes',
       };
     }
   };
@@ -443,37 +441,39 @@ export const PomodoroTimer: React.FC = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div className="timer-card">
+      <div className='timer-card'>
         {/* Header */}
-        <div className="header">
-          <div className="title">专注时钟</div>
-          <button className="settings-btn" onClick={handleSettingsClick}>⚙️</button>
+        <div className='header'>
+          <div className='title'>专注时钟</div>
+          <button className='settings-btn' onClick={handleSettingsClick}>
+            ⚙️
+          </button>
         </div>
 
         {/* Timer Display */}
-        <div className="timer-circle">
-          <div className="timer-display">
+        <div className='timer-circle'>
+          <div className='timer-display'>
             {time}
-            {unit && <div className="timer-unit">{unit}</div>}
+            {unit && <div className='timer-unit'>{unit}</div>}
           </div>
         </div>
 
         {/* Mode Tabs */}
-        <div className="mode-tabs">
+        <div className='mode-tabs'>
           <ModeTab
-            mode="work"
+            mode='work'
             label={modeLabels.work}
             isActive={currentMode === 'work'}
             onClick={() => handleModeChange('work')}
           />
           <ModeTab
-            mode="shortBreak"
+            mode='shortBreak'
             label={modeLabels.shortBreak}
             isActive={currentMode === 'shortBreak'}
             onClick={() => handleModeChange('shortBreak')}
           />
           <ModeTab
-            mode="longBreak"
+            mode='longBreak'
             label={modeLabels.longBreak}
             isActive={currentMode === 'longBreak'}
             onClick={() => handleModeChange('longBreak')}
@@ -481,56 +481,60 @@ export const PomodoroTimer: React.FC = () => {
         </div>
 
         {/* Control Buttons */}
-        <div className="controls">
-          <button className="control-btn play-btn" onClick={handleTimerAction}>
+        <div className='controls'>
+          <button className='control-btn play-btn' onClick={handleTimerAction}>
             {isRunning ? '⏸' : '▶'}
           </button>
-          <button className="control-btn reset-btn" onClick={resetTimer}>
+          <button className='control-btn reset-btn' onClick={resetTimer}>
             ↻
           </button>
         </div>
 
         {/* Tasks Section */}
-        <div className="section-header">
-          <div className="section-title">今日任务</div>
-          <button className="add-btn" onClick={handleAddTaskClick}>+</button>
+        <div className='section-header'>
+          <div className='section-title'>今日任务</div>
+          <button className='add-btn' onClick={handleAddTaskClick}>
+            +
+          </button>
         </div>
 
-        <div className="task-list">
+        <div className='task-list'>
           {activeTasks.length > 0 ? (
-            activeTasks.slice(0, 3).map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={handleTaskToggle}
-              />
-            ))
+            activeTasks
+              .slice(0, 3)
+              .map(task => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={handleTaskToggle}
+                />
+              ))
           ) : (
-            <div className="empty-tasks">
-              暂无任务，点击 + 添加任务
-            </div>
+            <div className='empty-tasks'>暂无任务，点击 + 添加任务</div>
           )}
         </div>
 
         {/* Statistics */}
-        <div className="section-header">
-          <div className="section-title">今日统计</div>
+        <div className='section-header'>
+          <div className='section-title'>今日统计</div>
         </div>
-        <div className="stats">
-          <div className="stat-card">
-            <div className="stat-number">{todayPomodoros || 0}</div>
-            <div className="stat-label">完成番茄</div>
+        <div className='stats'>
+          <div className='stat-card'>
+            <div className='stat-number'>{todayPomodoros || 0}</div>
+            <div className='stat-label'>完成番茄</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{Math.round((todayWorkTime || 0) / 60)}</div>
-            <div className="stat-label">专注分钟</div>
+          <div className='stat-card'>
+            <div className='stat-number'>
+              {Math.round((todayWorkTime || 0) / 60)}
+            </div>
+            <div className='stat-label'>专注分钟</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{completedTasks.length}</div>
-            <div className="stat-label">完成任务</div>
+          <div className='stat-card'>
+            <div className='stat-number'>{completedTasks.length}</div>
+            <div className='stat-label'>完成任务</div>
           </div>
         </div>
       </div>
     </>
   );
-}; 
+};

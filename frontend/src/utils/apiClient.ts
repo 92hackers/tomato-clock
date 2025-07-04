@@ -3,7 +3,8 @@ import { authStorage } from './auth';
 import { AuthResponse, RefreshTokenResponse } from '../types/auth';
 
 // API 基础配置
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // 创建 axios 实例
 const apiClient: AxiosInstance = axios.create({
@@ -16,14 +17,14 @@ const apiClient: AxiosInstance = axios.create({
 
 // 请求拦截器 - 添加认证 token
 apiClient.interceptors.request.use(
-  (config) => {
+  config => {
     const token = authStorage.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
@@ -34,20 +35,24 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config as any;
 
     // 处理 401 错误 - 未授权
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
 
       try {
         // 尝试刷新 token
         const refreshResponse = await refreshToken();
-        
+
         if (refreshResponse.success && refreshResponse.data?.token) {
           const newToken = refreshResponse.data.token;
           authStorage.setToken(newToken);
-          
+
           // 重新发送原始请求
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(originalRequest);
@@ -74,29 +79,38 @@ function getErrorMessage(error: AxiosError): string {
     const data = error.response.data as any;
     return data.message || data.error || '请求失败';
   }
-  
+
   if (error.request) {
     return '网络连接失败，请检查网络设置';
   }
-  
+
   return error.message || '未知错误';
 }
 
 // 认证相关 API 函数
 export const authAPI = {
   // 用户登录
-  login: async (credentials: { email: string; password: string }): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+  login: async (credentials: {
+    email: string;
+    password: string;
+  }): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>(
+      '/auth/login',
+      credentials
+    );
     return response.data;
   },
 
   // 用户注册
-  register: async (credentials: { 
-    username: string; 
-    email: string; 
-    password: string; 
+  register: async (credentials: {
+    username: string;
+    email: string;
+    password: string;
   }): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/auth/register', credentials);
+    const response = await apiClient.post<AuthResponse>(
+      '/auth/register',
+      credentials
+    );
     return response.data;
   },
 
@@ -113,7 +127,8 @@ export const authAPI = {
 
   // 刷新 token
   refreshToken: async (): Promise<RefreshTokenResponse> => {
-    const response = await apiClient.post<RefreshTokenResponse>('/auth/refresh');
+    const response =
+      await apiClient.post<RefreshTokenResponse>('/auth/refresh');
     return response.data;
   },
 };
@@ -132,4 +147,4 @@ async function refreshToken(): Promise<RefreshTokenResponse> {
   return response.data;
 }
 
-export default apiClient; 
+export default apiClient;

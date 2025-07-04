@@ -1,4 +1,8 @@
-import { validateTaskForm, ValidationResult, TaskFormData } from '../formValidation';
+import {
+  validateTaskForm,
+  ValidationResult,
+  TaskFormData,
+} from '../formValidation';
 
 describe('formValidation', () => {
   describe('validateTaskForm', () => {
@@ -6,7 +10,7 @@ describe('formValidation', () => {
       const validTaskData: TaskFormData = {
         title: 'Complete project documentation',
         estimatedPomodoros: 4,
-        notes: 'Focus on API documentation'
+        notes: 'Focus on API documentation',
       };
 
       const result: ValidationResult = validateTaskForm(validTaskData);
@@ -19,7 +23,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: '',
         estimatedPomodoros: 4,
-        notes: ''
+        notes: '',
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -32,7 +36,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: '   ',
         estimatedPomodoros: 4,
-        notes: ''
+        notes: '',
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -46,7 +50,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: longTitle,
         estimatedPomodoros: 4,
-        notes: ''
+        notes: '',
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -59,7 +63,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: 'Valid title',
         estimatedPomodoros: 0,
-        notes: ''
+        notes: '',
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -72,7 +76,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: 'Valid title',
         estimatedPomodoros: 21,
-        notes: ''
+        notes: '',
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -86,7 +90,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: 'Valid title',
         estimatedPomodoros: 4,
-        notes: longNotes
+        notes: longNotes,
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -99,7 +103,7 @@ describe('formValidation', () => {
       const validTaskData: TaskFormData = {
         title: 'Valid title',
         estimatedPomodoros: 4,
-        notes: ''
+        notes: '',
       };
 
       const result: ValidationResult = validateTaskForm(validTaskData);
@@ -111,7 +115,7 @@ describe('formValidation', () => {
     it('should pass validation for undefined notes', () => {
       const validTaskData: TaskFormData = {
         title: 'Valid title',
-        estimatedPomodoros: 4
+        estimatedPomodoros: 4,
       };
 
       const result: ValidationResult = validateTaskForm(validTaskData);
@@ -124,7 +128,7 @@ describe('formValidation', () => {
       const invalidTaskData: TaskFormData = {
         title: '',
         estimatedPomodoros: 25,
-        notes: 'a'.repeat(501)
+        notes: 'a'.repeat(501),
       };
 
       const result: ValidationResult = validateTaskForm(invalidTaskData);
@@ -139,7 +143,7 @@ describe('formValidation', () => {
       const boundaryValidData: TaskFormData = {
         title: 'a', // minimum length
         estimatedPomodoros: 1, // minimum value
-        notes: 'a'.repeat(500) // maximum length
+        notes: 'a'.repeat(500), // maximum length
       };
 
       const result: ValidationResult = validateTaskForm(boundaryValidData);
@@ -152,7 +156,7 @@ describe('formValidation', () => {
       const boundaryValidData: TaskFormData = {
         title: 'a'.repeat(100), // maximum length
         estimatedPomodoros: 20, // maximum value
-        notes: 'a'.repeat(500) // maximum length
+        notes: 'a'.repeat(500), // maximum length
       };
 
       const result: ValidationResult = validateTaskForm(boundaryValidData);
@@ -161,4 +165,4 @@ describe('formValidation', () => {
       expect(result.errors).toEqual({});
     });
   });
-}); 
+});

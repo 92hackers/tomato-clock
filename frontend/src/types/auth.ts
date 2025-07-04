@@ -93,4 +93,4 @@ export const AUTH_STORAGE_KEYS = {
   TOKEN: 'auth_token',
   USER: 'auth_user',
   REFRESH_TOKEN: 'auth_refresh_token',
-} as const; 
+} as const;

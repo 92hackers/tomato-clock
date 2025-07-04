@@ -13,29 +13,33 @@ export default function HomePage() {
 
   if (!mounted) {
     return (
-      <PageLayout data-testid="loading-page">
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          height: '100%',
-          flexDirection: 'column'
-        }}>
-          <div style={{
-            width: '8rem',
-            height: '8rem',
-            border: '8px solid #e5e7eb',
-            borderTop: '8px solid #3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
+      <PageLayout data-testid='loading-page'>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              width: '8rem',
+              height: '8rem',
+              border: '8px solid #e5e7eb',
+              borderTop: '8px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
         </div>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout data-testid="home-page">
+    <PageLayout data-testid='home-page'>
       <PomodoroTimer />
     </PageLayout>
   );

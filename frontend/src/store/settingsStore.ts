@@ -1,35 +1,35 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  SettingsStore, 
-  SettingsState, 
+import {
+  SettingsStore,
+  SettingsState,
   DEFAULT_SETTINGS,
   TimerSettings,
   NotificationSettings,
-  ThemeSettings 
+  ThemeSettings,
 } from '../types/settings';
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set) => ({
+    set => ({
       // 初始状态
       ...DEFAULT_SETTINGS,
 
       // 更新计时器设置
       updateTimerSettings: (settings: Partial<TimerSettings>) =>
-        set((state) => ({
+        set(state => ({
           timers: { ...state.timers, ...settings },
         })),
 
       // 更新通知设置
       updateNotificationSettings: (settings: Partial<NotificationSettings>) =>
-        set((state) => ({
+        set(state => ({
           notifications: { ...state.notifications, ...settings },
         })),
 
       // 更新主题设置
       updateThemeSettings: (settings: Partial<ThemeSettings>) =>
-        set((state) => ({
+        set(state => ({
           theme: { ...state.theme, ...settings },
         })),
 
@@ -38,11 +38,11 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'pomodoro-settings', // localStorage key
-      partialize: (state) => ({
+      partialize: state => ({
         timers: state.timers,
         notifications: state.notifications,
         theme: state.theme,
       }),
     }
   )
-); 
+);

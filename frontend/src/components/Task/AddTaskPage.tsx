@@ -316,9 +316,7 @@ const styles = `
   }
 `;
 
-export const AddTaskPage: React.FC<AddTaskPageProps> = ({
-  className = '',
-}) => {
+export const AddTaskPage: React.FC<AddTaskPageProps> = ({ className = '' }) => {
   const router = useRouter();
   const { addTask } = useTaskStore();
 
@@ -347,16 +345,10 @@ export const AddTaskPage: React.FC<AddTaskPageProps> = ({
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className={`add-task-container ${className}`}>
-        <FormHeader
-          title="添加任务"
-          onBack={handleCancel}
-        />
-        
-        <TaskForm
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+        <FormHeader title='添加任务' onBack={handleCancel} />
+
+        <TaskForm onSubmit={handleSubmit} onCancel={handleCancel} />
       </div>
     </>
   );
-}; 
+};

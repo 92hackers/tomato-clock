@@ -14,7 +14,9 @@ jest.mock('../../store/authStore', () => ({
   useAuthStore: jest.fn(),
 }));
 
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 
 describe('useAuth', () => {
   beforeEach(() => {
@@ -37,7 +39,7 @@ describe('useAuth', () => {
   describe('Initial State', () => {
     it('should return auth state from store', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.user).toBeNull();
       expect(result.current.token).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
@@ -49,37 +51,37 @@ describe('useAuth', () => {
   describe('Authentication Actions', () => {
     it('should provide login function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.login).toBe('function');
     });
 
     it('should provide register function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.register).toBe('function');
     });
 
     it('should provide logout function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.logout).toBe('function');
     });
 
     it('should provide clearError function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.clearError).toBe('function');
     });
 
     it('should provide checkAuth function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.checkAuth).toBe('function');
     });
 
     it('should provide refreshToken function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.refreshToken).toBe('function');
     });
   });
@@ -87,7 +89,7 @@ describe('useAuth', () => {
   describe('Computed Properties', () => {
     it('should provide isLoggedIn computed property', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.isLoggedIn).toBe(false);
     });
 
@@ -113,13 +115,13 @@ describe('useAuth', () => {
       });
 
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.isLoggedIn).toBe(true);
     });
 
     it('should provide hasError computed property', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.hasError).toBe(false);
     });
 
@@ -139,7 +141,7 @@ describe('useAuth', () => {
       });
 
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.hasError).toBe(true);
     });
   });
@@ -147,7 +149,7 @@ describe('useAuth', () => {
   describe('Helper Functions', () => {
     it('should provide loginWithCredentials function', async () => {
       const { result } = renderHook(() => useAuth());
-      
+
       await act(async () => {
         await result.current.loginWithCredentials({
           email: 'test@example.com',
@@ -163,7 +165,7 @@ describe('useAuth', () => {
 
     it('should provide registerWithCredentials function', async () => {
       const { result } = renderHook(() => useAuth());
-      
+
       await act(async () => {
         await result.current.registerWithCredentials({
           username: 'newuser',
@@ -181,7 +183,7 @@ describe('useAuth', () => {
 
     it('should provide signOut function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       act(() => {
         result.current.signOut();
       });
@@ -191,7 +193,7 @@ describe('useAuth', () => {
 
     it('should provide clearAuthError function', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       act(() => {
         result.current.clearAuthError();
       });
@@ -201,7 +203,7 @@ describe('useAuth', () => {
 
     it('should provide initializeAuth function', async () => {
       const { result } = renderHook(() => useAuth());
-      
+
       await act(async () => {
         await result.current.initializeAuth();
       });
@@ -211,7 +213,7 @@ describe('useAuth', () => {
 
     it('should provide renewToken function', async () => {
       const { result } = renderHook(() => useAuth());
-      
+
       await act(async () => {
         await result.current.renewToken();
       });
@@ -245,7 +247,7 @@ describe('useAuth', () => {
       });
 
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.currentUser).toEqual(mockUser);
     });
 
@@ -273,13 +275,13 @@ describe('useAuth', () => {
       });
 
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.userDisplayName).toBe('testuser');
     });
 
     it('should return null for userDisplayName when no user', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.userDisplayName).toBeNull();
     });
   });
@@ -301,8 +303,8 @@ describe('useAuth', () => {
       });
 
       const { result } = renderHook(() => useAuth());
-      
+
       expect(result.current.isAuthenticating).toBe(true);
     });
   });
-}); 
+});

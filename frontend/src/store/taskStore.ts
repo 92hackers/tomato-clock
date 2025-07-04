@@ -8,9 +8,9 @@ function generateId(): string {
     return crypto.randomUUID();
   }
   // Fallback for test environment
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -18,7 +18,7 @@ function generateId(): string {
 interface TaskState {
   tasks: Task[];
   selectedTaskId: string | null;
-  
+
   // Actions
   addTask: (task: TaskCreateRequest) => void;
   updateTask: (id: string, updates: TaskUpdateRequest) => void;
@@ -26,7 +26,7 @@ interface TaskState {
   completeTask: (id: string) => void;
   selectTask: (id: string | null) => void;
   incrementTaskPomodoro: (id: string) => void;
-  
+
   // Getters
   getTask: (id: string) => Task | undefined;
   getSelectedTask: () => Task | undefined;
@@ -53,14 +53,14 @@ export const useTaskStore = create<TaskState>()(
           updatedAt: new Date(),
         };
 
-        set((state) => ({
+        set(state => ({
           tasks: [...state.tasks, newTask],
         }));
       },
 
       updateTask: (id: string, updates: TaskUpdateRequest) => {
-        set((state) => ({
-          tasks: state.tasks.map((task) =>
+        set(state => ({
+          tasks: state.tasks.map(task =>
             task.id === id
               ? { ...task, ...updates, updatedAt: new Date() }
               : task
@@ -69,15 +69,16 @@ export const useTaskStore = create<TaskState>()(
       },
 
       deleteTask: (id: string) => {
-        set((state) => ({
-          tasks: state.tasks.filter((task) => task.id !== id),
-          selectedTaskId: state.selectedTaskId === id ? null : state.selectedTaskId,
+        set(state => ({
+          tasks: state.tasks.filter(task => task.id !== id),
+          selectedTaskId:
+            state.selectedTaskId === id ? null : state.selectedTaskId,
         }));
       },
 
       completeTask: (id: string) => {
-        set((state) => ({
-          tasks: state.tasks.map((task) =>
+        set(state => ({
+          tasks: state.tasks.map(task =>
             task.id === id
               ? { ...task, completed: true, updatedAt: new Date() }
               : task
@@ -90,16 +91,16 @@ export const useTaskStore = create<TaskState>()(
       },
 
       incrementTaskPomodoro: (id: string) => {
-        set((state) => ({
-          tasks: state.tasks.map((task) =>
+        set(state => ({
+          tasks: state.tasks.map(task =>
             task.id === id
-              ? { 
-                  ...task, 
+              ? {
+                  ...task,
                   completedPomodoros: Math.min(
                     task.completedPomodoros + 1,
                     task.estimatedPomodoros
                   ),
-                  updatedAt: new Date()
+                  updatedAt: new Date(),
                 }
               : task
           ),
@@ -108,19 +109,21 @@ export const useTaskStore = create<TaskState>()(
 
       // Getters
       getTask: (id: string) => {
-        return get().tasks.find((task) => task.id === id);
+        return get().tasks.find(task => task.id === id);
       },
 
       getSelectedTask: () => {
         const { selectedTaskId, tasks } = get();
-        return selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) : undefined;
+        return selectedTaskId
+          ? tasks.find(task => task.id === selectedTaskId)
+          : undefined;
       },
 
       getTodayTasks: () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
-        return get().tasks.filter((task) => {
+
+        return get().tasks.filter(task => {
           const taskDate = new Date(task.createdAt);
           taskDate.setHours(0, 0, 0, 0);
           return taskDate.getTime() === today.getTime();
@@ -128,19 +131,19 @@ export const useTaskStore = create<TaskState>()(
       },
 
       getCompletedTasks: () => {
-        return get().tasks.filter((task) => task.completed);
+        return get().tasks.filter(task => task.completed);
       },
 
       getActiveTasks: () => {
-        return get().tasks.filter((task) => !task.completed);
+        return get().tasks.filter(task => !task.completed);
       },
     }),
     {
       name: 'task-storage',
-      partialize: (state) => ({
+      partialize: state => ({
         tasks: state.tasks,
         selectedTaskId: state.selectedTaskId,
       }),
     }
   )
-); 
+);

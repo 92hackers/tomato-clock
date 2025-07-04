@@ -55,4 +55,4 @@ export interface TaskProgress {
   taskId: string;
   progress: number; // 0-100
   isCompleted: boolean;
-} 
+}

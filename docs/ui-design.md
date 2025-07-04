@@ -780,35 +780,518 @@ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica
 - 错误状态的红色对比度符合可访问性标准
 - 提供高对比度模式选项
 
-## 9. 可访问性设计
+## 9. 数据可视化设计规范
 
-### 9.1 颜色对比
+### 9.1 图表设计原则
 
-- 确保文字与背景的对比度符合WCAG 2.1 AA标准
-- 提供高对比度模式选项
+番茄时钟应用的数据统计界面采用现代化的数据可视化设计，遵循以下核心原则：
 
-### 9.2 键盘导航
+#### 9.1.1 设计理念
+- **清晰性**: 数据展示清晰易懂，避免视觉混乱
+- **一致性**: 图表样式与整体设计语言保持一致
+- **交互性**: 提供丰富的交互功能增强用户体验
+- **响应式**: 适配不同设备屏幕尺寸
+
+#### 9.1.2 色彩规范
 
 ```css
-/* 焦点指示器 */
-.focus-visible {
-  outline: 2px solid var(--primary-blue);
-  outline-offset: 2px;
+/* 图表专用色彩系统 */
+:root {
+  /* 主要数据色彩 */
+  --chart-primary: #007AFF;      /* iOS蓝色 - 主要数据 */
+  --chart-secondary: #34C759;    /* 成功绿色 - 完成数据 */
+  --chart-warning: #FF9500;      /* 专注橙色 - 专注相关 */
+  --chart-error: #FF3B30;        /* 警告红色 - 问题数据 */
+  
+  /* 渐变色彩 */
+  --chart-gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --chart-gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --chart-gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  
+  /* 中性色彩 */
+  --chart-gray-100: #F5F5F7;
+  --chart-gray-200: #E5E5EA;
+  --chart-gray-300: #D1D1D6;
+  --chart-gray-600: #8E8E93;
+  
+  /* 背景色彩 */
+  --chart-background: rgba(0, 122, 255, 0.05);
+  --chart-grid: rgba(0, 0, 0, 0.1);
+  --chart-tooltip-bg: rgba(0, 0, 0, 0.8);
 }
 ```
 
-### 9.3 屏幕阅读器支持
+### 9.2 图表组件设计
 
-```html
-<!-- 语义化标签和ARIA属性 -->
-<button aria-label="开始番茄钟计时">
-  <span aria-hidden="true">▶</span>
-</button>
+#### 9.2.1 折线图设计 (LineChart)
 
-<div role="timer" aria-live="polite">
-  <span aria-label="剩余时间">25:00</span>
-</div>
+```css
+.line-chart-container {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.line-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.line-chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.line-chart-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* 图表样式配置 */
+.line-chart {
+  --line-color: var(--chart-primary);
+  --line-width: 3px;
+  --point-radius: 6px;
+  --point-hover-radius: 8px;
+  --fill-color: var(--chart-background);
+}
 ```
+
+#### 9.2.2 柱状图设计 (BarChart)
+
+```css
+.bar-chart-container {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.bar-chart {
+  --bar-color-1: var(--chart-primary);
+  --bar-color-2: var(--chart-secondary);
+  --bar-color-3: var(--chart-warning);
+  --bar-color-4: var(--chart-error);
+  --bar-radius: 8px;
+  --bar-spacing: 0.6;
+}
+
+.bar-chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+```
+
+#### 9.2.3 环形图设计 (DoughnutChart)
+
+```css
+.doughnut-chart-container {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.doughnut-chart {
+  --cutout-percentage: 60%;
+  --border-width: 0;
+  --hover-border-width: 4px;
+}
+
+.doughnut-center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.doughnut-center-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.doughnut-center-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+```
+
+### 9.3 时间选择器设计
+
+```css
+.period-selector {
+  display: flex;
+  background: var(--chart-gray-100);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.period-option {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-option.active {
+  background: white;
+  color: var(--chart-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.period-option:hover:not(.active) {
+  color: var(--text-primary);
+}
+```
+
+### 9.4 统计卡片设计
+
+```css
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--chart-gradient-1);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: var(--chart-background);
+  color: var(--chart-primary);
+}
+
+.stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.stat-change {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.stat-change.positive {
+  color: var(--chart-secondary);
+  background: rgba(52, 199, 89, 0.1);
+}
+
+.stat-change.negative {
+  color: var(--chart-error);
+  background: rgba(255, 59, 48, 0.1);
+}
+```
+
+### 9.5 交互设计
+
+#### 9.5.1 Tooltip 设计
+
+```css
+.chart-tooltip {
+  background: var(--chart-tooltip-bg);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tooltip-body {
+  font-weight: 400;
+  opacity: 0.9;
+}
+```
+
+#### 9.5.2 交互动画
+
+```css
+.chart-animation {
+  animation: chartFadeIn 0.6s ease-out;
+}
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-hover-effect {
+  transition: all 0.2s ease;
+}
+
+.chart-hover-effect:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+```
+
+### 9.6 响应式适配
+
+#### 9.6.1 移动端优化
+
+```css
+/* 移动端图表适配 */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .chart-title {
+    font-size: 16px;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .stat-number {
+    font-size: 24px;
+  }
+  
+  .period-selector {
+    margin-bottom: 16px;
+  }
+  
+  .period-option {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  
+  .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .doughnut-center-value {
+    font-size: 20px;
+  }
+  
+  .legend-item {
+    font-size: 12px;
+  }
+}
+```
+
+#### 9.6.2 平板端适配
+
+```css
+@media (min-width: 769px) and (max-width: 1024px) {
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  
+  .chart-container.full-width {
+    grid-column: 1 / -1;
+  }
+}
+```
+
+### 9.7 数据加载状态设计
+
+```css
+.chart-skeleton {
+  background: var(--chart-gray-100);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.skeleton-bar {
+  height: 200px;
+  background: var(--chart-gray-200);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.skeleton-text {
+  height: 16px;
+  background: var(--chart-gray-200);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+.skeleton-text.long {
+  width: 80%;
+}
+```
+
+### 9.8 无障碍访问支持
+
+```css
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .chart-container {
+    border: 2px solid var(--text-primary);
+  }
+  
+  .stat-card {
+    border: 1px solid var(--chart-gray-300);
+  }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+  .chart-animation,
+  .chart-hover-effect {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* 屏幕阅读器支持 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+```
+
+### 9.9 数据可视化最佳实践
+
+#### 9.9.1 图表选择指南
+
+- **折线图**: 适用于时间序列数据，显示趋势变化
+- **柱状图**: 适用于分类数据比较，显示数量对比
+- **环形图**: 适用于部分与整体关系，显示比例分布
+
+#### 9.9.2 颜色使用规范
+
+1. **主色调**: 使用 iOS 系统色彩作为主要数据颜色
+2. **对比度**: 确保足够的对比度以支持可访问性
+3. **色盲友好**: 避免单纯依赖颜色传达信息
+4. **语义化**: 绿色表示正面数据，红色表示负面数据
+
+#### 9.9.3 交互设计规范
+
+1. **悬停反馈**: 提供即时的视觉反馈
+2. **点击交互**: 支持点击查看详细信息
+3. **触摸友好**: 移动端触摸目标至少 44px
+4. **键盘导航**: 支持键盘访问和导航
 
 ## 10. 设计规范总结
 

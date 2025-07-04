@@ -19,7 +19,9 @@ jest.mock('../../../../hooks/useAuth', () => ({
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
-const mockUseSearchParams = useSearchParams as jest.MockedFunction<typeof useSearchParams>;
+const mockUseSearchParams = useSearchParams as jest.MockedFunction<
+  typeof useSearchParams
+>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 describe('LoginPage', () => {
@@ -48,8 +50,10 @@ describe('LoginPage', () => {
   describe('Page Rendering', () => {
     it('should render login page with form', () => {
       render(<LoginPage />);
-      
-      expect(screen.getByRole('heading', { name: /登录/i })).toBeInTheDocument();
+
+      expect(
+        screen.getByRole('heading', { name: /登录/i })
+      ).toBeInTheDocument();
       expect(screen.getByLabelText(/邮箱/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/密码/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /登录/i })).toBeInTheDocument();
@@ -57,20 +61,22 @@ describe('LoginPage', () => {
 
     it('should render welcome message', () => {
       render(<LoginPage />);
-      
+
       expect(screen.getByText(/欢迎回来/i)).toBeInTheDocument();
     });
 
     it('should render register link', () => {
       render(<LoginPage />);
-      
+
       expect(screen.getByText(/还没有账户？/i)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /立即注册/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /立即注册/i })
+      ).toBeInTheDocument();
     });
 
     it('should have proper iOS styling', () => {
       render(<LoginPage />);
-      
+
       const container = screen.getByTestId('login-container');
       expect(container).toHaveClass('ios-card-style');
     });
@@ -88,7 +94,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       const emailInput = screen.getByLabelText(/邮箱/i);
       const passwordInput = screen.getByLabelText(/密码/i);
       const loginButton = screen.getByRole('button', { name: /登录/i });
@@ -115,7 +121,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       const loginButton = screen.getByRole('button', { name: /登录中.../i });
       expect(loginButton).toBeDisabled();
     });
@@ -130,7 +136,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       expect(screen.getByText('邮箱或密码错误')).toBeInTheDocument();
     });
 
@@ -145,7 +151,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       const emailInput = screen.getByLabelText(/邮箱/i);
       fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
 
@@ -166,7 +172,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/dashboard');
       });
@@ -186,7 +192,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/protected-page');
       });
@@ -206,7 +212,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/protected-page');
       });
@@ -216,7 +222,7 @@ describe('LoginPage', () => {
   describe('Page Metadata', () => {
     it('should have correct page title', () => {
       render(<LoginPage />);
-      
+
       expect(document.title).toBe('登录 - 应用名称');
     });
   });
@@ -224,39 +230,39 @@ describe('LoginPage', () => {
   describe('Accessibility', () => {
     it('should have proper form labels', () => {
       render(<LoginPage />);
-      
+
       const emailInput = screen.getByLabelText(/邮箱/i);
       const passwordInput = screen.getByLabelText(/密码/i);
-      
+
       expect(emailInput).toBeInTheDocument();
       expect(passwordInput).toBeInTheDocument();
     });
 
     it('should have proper heading hierarchy', () => {
       render(<LoginPage />);
-      
+
       const heading = screen.getByRole('heading', { name: /登录/i });
       expect(heading).toBeInTheDocument();
     });
 
     it('should support keyboard navigation', () => {
       render(<LoginPage />);
-      
+
       const emailInput = screen.getByLabelText(/邮箱/i);
       const passwordInput = screen.getByLabelText(/密码/i);
       const loginButton = screen.getByRole('button', { name: /登录/i });
-      
+
       // Check that fields have correct tabIndex
       expect(emailInput).toHaveAttribute('tabIndex', '1');
       expect(passwordInput).toHaveAttribute('tabIndex', '2');
-      
+
       // Check that fields are focusable
       emailInput.focus();
       expect(document.activeElement).toBe(emailInput);
-      
+
       passwordInput.focus();
       expect(document.activeElement).toBe(passwordInput);
-      
+
       loginButton.focus();
       expect(document.activeElement).toBe(loginButton);
     });
@@ -273,7 +279,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       expect(screen.getByText('网络连接失败')).toBeInTheDocument();
     });
 
@@ -287,7 +293,7 @@ describe('LoginPage', () => {
       } as any);
 
       render(<LoginPage />);
-      
+
       expect(screen.getByText('服务器错误')).toBeInTheDocument();
     });
   });
@@ -295,7 +301,7 @@ describe('LoginPage', () => {
   describe('Form Validation', () => {
     it('should integrate with LoginForm validation', async () => {
       render(<LoginPage />);
-      
+
       const loginButton = screen.getByRole('button', { name: /登录/i });
       fireEvent.click(loginButton);
 
@@ -305,4 +311,4 @@ describe('LoginPage', () => {
       });
     });
   });
-}); 
+});

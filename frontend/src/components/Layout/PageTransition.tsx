@@ -14,25 +14,29 @@ const PAGE_LEVELS = {
   '/settings': 1,
 } as const;
 
-export const PageTransition: React.FC<PageTransitionProps> = ({ 
-  children, 
-  'data-testid': testId 
+export const PageTransition: React.FC<PageTransitionProps> = ({
+  children,
+  'data-testid': testId,
 }) => {
   const pathname = usePathname();
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [transitionDirection, setTransitionDirection] = useState<'forward' | 'back' | null>(null);
+  const [transitionDirection, setTransitionDirection] = useState<
+    'forward' | 'back' | null
+  >(null);
   const [prevPathname, setPrevPathname] = useState<string | null>(null);
 
   useEffect(() => {
     if (prevPathname && prevPathname !== pathname) {
-      const prevLevel = PAGE_LEVELS[prevPathname as keyof typeof PAGE_LEVELS] || 0;
-      const currentLevel = PAGE_LEVELS[pathname as keyof typeof PAGE_LEVELS] || 0;
-      
+      const prevLevel =
+        PAGE_LEVELS[prevPathname as keyof typeof PAGE_LEVELS] || 0;
+      const currentLevel =
+        PAGE_LEVELS[pathname as keyof typeof PAGE_LEVELS] || 0;
+
       // 确定滑动方向
       const direction = currentLevel > prevLevel ? 'forward' : 'back';
       setTransitionDirection(direction);
       setIsTransitioning(true);
-      
+
       // 动画持续时间后重置状态
       const timer = setTimeout(() => {
         setIsTransitioning(false);
@@ -41,7 +45,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
 
       return () => clearTimeout(timer);
     }
-    
+
     setPrevPathname(pathname);
   }, [pathname, prevPathname]);
 
@@ -110,11 +114,11 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: transitionStyles }} />
-      <div 
+      <div
         className={`page-transition-container ${isTransitioning ? 'transitioning' : ''}`}
         data-testid={testId}
       >
-        <div 
+        <div
           className={`page-transition-content ${getTransitionClass()}`}
           key={pathname} // 强制重新渲染以触发动画
         >
@@ -123,4 +127,4 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
       </div>
     </>
   );
-}; 
+};

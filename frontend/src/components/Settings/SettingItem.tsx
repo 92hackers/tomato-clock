@@ -45,11 +45,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
   };
 
   return (
-    <div
-      style={containerStyle}
-      onClick={handleClick}
-      data-testid={testId}
-    >
+    <div style={containerStyle} onClick={handleClick} data-testid={testId}>
       <span style={labelStyle}>{label}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {value && <span style={valueStyle}>{value}</span>}
@@ -57,4 +53,4 @@ export const SettingItem: React.FC<SettingItemProps> = ({
       </div>
     </div>
   );
-}; 
+};

@@ -232,7 +232,12 @@ interface ModeTabProps {
   onClick: () => void;
 }
 
-const ModeTab: React.FC<ModeTabProps> = ({ mode, label, isActive, onClick }) => (
+const ModeTab: React.FC<ModeTabProps> = ({
+  mode,
+  label,
+  isActive,
+  onClick,
+}) => (
   <button
     className={`tab-button ${isActive ? 'active' : ''}`}
     onClick={onClick}
@@ -249,8 +254,8 @@ interface TaskItemProps {
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => (
-  <li className="task-item">
-    <div className="task-left">
+  <li className='task-item'>
+    <div className='task-left'>
       <div
         className={`task-checkbox ${task.completed ? 'completed' : ''}`}
         onClick={() => onToggle(task.id)}
@@ -259,7 +264,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => (
         {task.title}
       </span>
     </div>
-    <span className="task-count">
+    <span className='task-count'>
       {task.completedPomodoros}/{task.estimatedPomodoros}
     </span>
   </li>
@@ -284,12 +289,8 @@ export const PomodoroTimerCard: React.FC = () => {
     switchMode,
   } = useTimer();
 
-  const {
-    tasks,
-    completeTask,
-    incrementTaskPomodoro,
-    getActiveTasks,
-  } = useTaskStore();
+  const { tasks, completeTask, incrementTaskPomodoro, getActiveTasks } =
+    useTaskStore();
 
   const formattedTime = formatDuration(timeLeft);
   const activeTasks = getActiveTasks();
@@ -336,34 +337,36 @@ export const PomodoroTimerCard: React.FC = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div className="main-card">
+      <div className='main-card'>
         {/* Header */}
-        <div className="header">
-          <div className="title">专注时钟</div>
-          <button className="settings" onClick={handleSettingsClick}>⚙️</button>
+        <div className='header'>
+          <div className='title'>专注时钟</div>
+          <button className='settings' onClick={handleSettingsClick}>
+            ⚙️
+          </button>
         </div>
 
         {/* Timer Circle */}
-        <div className="timer-circle">
-          <div className="timer">{formattedTime}</div>
+        <div className='timer-circle'>
+          <div className='timer'>{formattedTime}</div>
         </div>
 
         {/* Mode Tabs */}
-        <div className="buttons-row">
+        <div className='buttons-row'>
           <ModeTab
-            mode="work"
+            mode='work'
             label={modeLabels.work}
             isActive={currentMode === 'work'}
             onClick={() => handleModeChange('work')}
           />
           <ModeTab
-            mode="shortBreak"
+            mode='shortBreak'
             label={modeLabels.shortBreak}
             isActive={currentMode === 'shortBreak'}
             onClick={() => handleModeChange('shortBreak')}
           />
           <ModeTab
-            mode="longBreak"
+            mode='longBreak'
             label={modeLabels.longBreak}
             isActive={currentMode === 'longBreak'}
             onClick={() => handleModeChange('longBreak')}
@@ -371,33 +374,38 @@ export const PomodoroTimerCard: React.FC = () => {
         </div>
 
         {/* Control Buttons */}
-        <div className="control-buttons">
-          <button className="control-button play-button" onClick={handleTimerAction}>
+        <div className='control-buttons'>
+          <button
+            className='control-button play-button'
+            onClick={handleTimerAction}
+          >
             {isRunning ? '⏸' : '▶'}
           </button>
-          <button className="control-button reset-button" onClick={resetTimer}>
+          <button className='control-button reset-button' onClick={resetTimer}>
             ↻
           </button>
         </div>
 
         {/* Tasks Section */}
-        <div className="section-title">
+        <div className='section-title'>
           今日任务
-          <button className="add-button" onClick={handleAddTaskClick}>
+          <button className='add-button' onClick={handleAddTaskClick}>
             +
           </button>
         </div>
 
-        <ul className="task-list">
+        <ul className='task-list'>
           {activeTasks.length > 0 ? (
-            activeTasks.slice(0, 3).map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={handleTaskToggle}
-                onDelete={handleTaskDelete}
-              />
-            ))
+            activeTasks
+              .slice(0, 3)
+              .map(task => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={handleTaskToggle}
+                  onDelete={handleTaskDelete}
+                />
+              ))
           ) : (
             <li style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
               暂无任务，点击 + 添加任务
@@ -406,22 +414,26 @@ export const PomodoroTimerCard: React.FC = () => {
         </ul>
 
         {/* Statistics */}
-        <div className="section-title">今日统计</div>
-        <div className="stats">
-          <div className="stat-box">
-            <div className="stat-number">{todayPomodoros || 0}</div>
-            <div className="stat-label">完成番茄</div>
+        <div className='section-title'>今日统计</div>
+        <div className='stats'>
+          <div className='stat-box'>
+            <div className='stat-number'>{todayPomodoros || 0}</div>
+            <div className='stat-label'>完成番茄</div>
           </div>
-          <div className="stat-box">
-            <div className="stat-number">{Math.round((todayWorkTime || 0) / 60)}</div>
-            <div className="stat-label">专注分钟</div>
+          <div className='stat-box'>
+            <div className='stat-number'>
+              {Math.round((todayWorkTime || 0) / 60)}
+            </div>
+            <div className='stat-label'>专注分钟</div>
           </div>
-          <div className="stat-box">
-            <div className="stat-number">{activeTasks.filter(t => t.completed).length}</div>
-            <div className="stat-label">完成任务</div>
+          <div className='stat-box'>
+            <div className='stat-number'>
+              {activeTasks.filter(t => t.completed).length}
+            </div>
+            <div className='stat-label'>完成任务</div>
           </div>
         </div>
       </div>
     </>
   );
-}; 
+};

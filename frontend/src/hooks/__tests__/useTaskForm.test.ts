@@ -209,7 +209,9 @@ describe('useTaskForm', () => {
   });
 
   it('should handle submit errors gracefully', async () => {
-    const mockOnSubmit = jest.fn().mockRejectedValue(new Error('Submit failed'));
+    const mockOnSubmit = jest
+      .fn()
+      .mockRejectedValue(new Error('Submit failed'));
     const { result } = renderHook(() => useTaskForm(undefined, mockOnSubmit));
 
     // Fill out valid form data
@@ -225,4 +227,4 @@ describe('useTaskForm', () => {
     expect(result.current.isSubmitting).toBe(false);
     expect(mockOnSubmit).toHaveBeenCalled();
   });
-}); 
+});

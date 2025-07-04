@@ -46,7 +46,7 @@ describe('AuthStore', () => {
   describe('Initial State', () => {
     it('should have correct initial state', () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       expect(result.current.user).toBeNull();
       expect(result.current.token).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
@@ -58,7 +58,7 @@ describe('AuthStore', () => {
   describe('Login', () => {
     it('should handle successful login', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.login({
           email: 'test@example.com',
@@ -83,7 +83,7 @@ describe('AuthStore', () => {
 
     it('should handle login failure', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.login({
           email: 'wrong@example.com',
@@ -102,7 +102,7 @@ describe('AuthStore', () => {
 
     it('should set loading state during login', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       // Start login and check loading state immediately
       let loginPromise: Promise<void>;
       act(() => {
@@ -125,7 +125,7 @@ describe('AuthStore', () => {
   describe('Register', () => {
     it('should handle successful registration', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.register({
           username: 'newuser',
@@ -145,13 +145,15 @@ describe('AuthStore', () => {
       expect(result.current.token).toBe('mock-jwt-token-register');
       expect(result.current.isLoading).toBe(false);
       expect(result.current.error).toBeNull();
-      expect(mockAuthStorage.setToken).toHaveBeenCalledWith('mock-jwt-token-register');
+      expect(mockAuthStorage.setToken).toHaveBeenCalledWith(
+        'mock-jwt-token-register'
+      );
       expect(mockAuthStorage.setUser).toHaveBeenCalled();
     });
 
     it('should handle registration failure', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.register({
           username: 'existinguser',
@@ -171,7 +173,7 @@ describe('AuthStore', () => {
 
     it('should set loading state during registration', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       // Start registration and check loading state immediately
       let registerPromise: Promise<void>;
       act(() => {
@@ -195,7 +197,7 @@ describe('AuthStore', () => {
   describe('Logout', () => {
     it('should clear all authentication data', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       // First login
       await act(async () => {
         await result.current.login({
@@ -221,7 +223,7 @@ describe('AuthStore', () => {
   describe('Clear Error', () => {
     it('should clear error state', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       // First trigger an error
       await act(async () => {
         await result.current.login({
@@ -255,7 +257,7 @@ describe('AuthStore', () => {
       mockAuthStorage.getUser.mockReturnValue(mockUser);
 
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.checkAuth();
       });
@@ -272,7 +274,7 @@ describe('AuthStore', () => {
       mockAuthStorage.getUser.mockReturnValue(null);
 
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.checkAuth();
       });
@@ -288,18 +290,20 @@ describe('AuthStore', () => {
   describe('Refresh Token', () => {
     it('should refresh token successfully', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       await act(async () => {
         await result.current.refreshToken();
       });
 
       expect(result.current.token).toBe('mock-refreshed-token');
-      expect(mockAuthStorage.setToken).toHaveBeenCalledWith('mock-refreshed-token');
+      expect(mockAuthStorage.setToken).toHaveBeenCalledWith(
+        'mock-refreshed-token'
+      );
     });
 
     it('should logout on refresh failure', async () => {
       const { result } = renderHook(() => useAuthStore());
-      
+
       // First set up an authenticated state
       await act(async () => {
         await result.current.login({
@@ -309,8 +313,10 @@ describe('AuthStore', () => {
       });
 
       // Mock the actual store instance to simulate refresh failure
-      const mockRefreshToken = jest.fn().mockRejectedValue(new Error('Refresh failed'));
-      
+      const mockRefreshToken = jest
+        .fn()
+        .mockRejectedValue(new Error('Refresh failed'));
+
       await act(async () => {
         try {
           await mockRefreshToken();
@@ -326,4 +332,4 @@ describe('AuthStore', () => {
       expect(mockAuthStorage.clearAll).toHaveBeenCalled();
     });
   });
-}); 
+});

@@ -88,7 +88,7 @@ describe('NumberSelector', () => {
   });
 
   it('should display custom label when provided', () => {
-    render(<NumberSelector {...defaultProps} label="自定义标签" />);
+    render(<NumberSelector {...defaultProps} label='自定义标签' />);
 
     expect(screen.getByText('自定义标签')).toBeInTheDocument();
   });
@@ -116,15 +116,15 @@ describe('NumberSelector', () => {
 
   it('should handle edge case with value below minimum', () => {
     render(<NumberSelector {...defaultProps} value={0} />);
-    
+
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /减少/i })).toBeDisabled();
   });
 
   it('should handle edge case with value above maximum', () => {
     render(<NumberSelector {...defaultProps} value={25} />);
-    
+
     expect(screen.getByText('25')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /增加/i })).toBeDisabled();
   });
-}); 
+});

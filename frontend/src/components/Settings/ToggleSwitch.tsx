@@ -50,10 +50,10 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       style={toggleStyle}
       onClick={handleClick}
       data-testid={testId}
-      role="switch"
+      role='switch'
       aria-checked={checked}
       tabIndex={0}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           handleClick();
@@ -63,4 +63,4 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       <div style={handleStyle} />
     </div>
   );
-}; 
+};

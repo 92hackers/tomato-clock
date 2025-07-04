@@ -34,8 +34,10 @@ export function validateTaskForm(data: TaskFormData): ValidationResult {
   }
 
   // 验证预计番茄数
-  if (data.estimatedPomodoros < VALIDATION_RULES.estimatedPomodoros.min || 
-      data.estimatedPomodoros > VALIDATION_RULES.estimatedPomodoros.max) {
+  if (
+    data.estimatedPomodoros < VALIDATION_RULES.estimatedPomodoros.min ||
+    data.estimatedPomodoros > VALIDATION_RULES.estimatedPomodoros.max
+  ) {
     errors.estimatedPomodoros = '预计番茄数必须在1-20之间';
   }
 
@@ -56,27 +58,39 @@ export function validateTaskForm(data: TaskFormData): ValidationResult {
  * @param value 字段值
  * @returns 错误信息，如果验证通过则返回空字符串
  */
-export function validateField(fieldName: keyof TaskFormData, value: any): string {
+export function validateField(
+  fieldName: keyof TaskFormData,
+  value: any
+): string {
   switch (fieldName) {
     case 'title':
       if (!value || (typeof value === 'string' && value.trim().length === 0)) {
         return '任务名称不能为空';
       }
-      if (typeof value === 'string' && value.length > VALIDATION_RULES.title.maxLength) {
+      if (
+        typeof value === 'string' &&
+        value.length > VALIDATION_RULES.title.maxLength
+      ) {
         return '任务名称不能超过100个字符';
       }
       return '';
 
     case 'estimatedPomodoros':
-      if (typeof value !== 'number' || 
-          value < VALIDATION_RULES.estimatedPomodoros.min || 
-          value > VALIDATION_RULES.estimatedPomodoros.max) {
+      if (
+        typeof value !== 'number' ||
+        value < VALIDATION_RULES.estimatedPomodoros.min ||
+        value > VALIDATION_RULES.estimatedPomodoros.max
+      ) {
         return '预计番茄数必须在1-20之间';
       }
       return '';
 
     case 'notes':
-      if (value && typeof value === 'string' && value.length > VALIDATION_RULES.notes.maxLength) {
+      if (
+        value &&
+        typeof value === 'string' &&
+        value.length > VALIDATION_RULES.notes.maxLength
+      ) {
         return '备注不能超过500个字符';
       }
       return '';
@@ -96,4 +110,4 @@ export function getDefaultFormData(): TaskFormData {
     estimatedPomodoros: VALIDATION_RULES.estimatedPomodoros.default,
     notes: '',
   };
-} 
+}

@@ -1,9 +1,9 @@
-import { 
-  LoginFormData, 
-  RegisterFormData, 
-  ValidationResult, 
+import {
+  LoginFormData,
+  RegisterFormData,
+  ValidationResult,
   AUTH_STORAGE_KEYS,
-  User 
+  User,
 } from '../types/auth';
 
 // 验证规则常量
@@ -238,4 +238,4 @@ export function getDefaultRegisterFormData(): RegisterFormData {
     password: '',
     confirmPassword: '',
   };
-} 
+}

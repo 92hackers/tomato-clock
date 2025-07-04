@@ -44,12 +44,12 @@ export const SettingsHeader: React.FC<SettingsHeaderProps> = ({
       <button
         style={backButtonStyle}
         onClick={onBack}
-        aria-label="返回"
-        data-testid="back-button"
+        aria-label='返回'
+        data-testid='back-button'
       >
         ←
       </button>
       <div style={titleStyle}>{title}</div>
     </div>
   );
-}; 
+};

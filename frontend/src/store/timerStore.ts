@@ -16,16 +16,16 @@ interface TimerState {
   isRunning: boolean;
   isPaused: boolean;
   isCompleted: boolean;
-  
+
   // Session tracking
   currentSession: number;
   sessionsUntilLongBreak: number;
   completedCycles: number;
-  
+
   // Statistics
   todayPomodoros: number;
   todayWorkTime: number;
-  
+
   // Settings
   settings: TimerSettings;
 }
@@ -38,10 +38,10 @@ interface TimerActions {
   completeTimer: () => void;
   switchMode: (mode: TimerMode) => void;
   updateSettings: (settings: Partial<TimerSettings>) => void;
-  
+
   // Internal state management
   setState: (updates: Partial<TimerState>) => void;
-  
+
   // Getters
   getTimerState: () => TimerState;
   getCurrentProgress: () => number;
@@ -132,7 +132,7 @@ export const useTimerStore = create<TimerStoreState>()(
 
       // Actions
       startTimer: () => {
-        set((state) => ({
+        set(state => ({
           isRunning: true,
           isPaused: false,
           isCompleted: false,
@@ -140,7 +140,7 @@ export const useTimerStore = create<TimerStoreState>()(
       },
 
       pauseTimer: () => {
-        set((state) => ({
+        set(state => ({
           isRunning: false,
           isPaused: true,
         }));
@@ -148,10 +148,12 @@ export const useTimerStore = create<TimerStoreState>()(
 
       resetTimer: () => {
         const state = get();
-        const duration = 
-          state.currentMode === 'work' ? state.settings.workDuration :
-          state.currentMode === 'shortBreak' ? state.settings.shortBreakDuration :
-          state.settings.longBreakDuration;
+        const duration =
+          state.currentMode === 'work'
+            ? state.settings.workDuration
+            : state.currentMode === 'shortBreak'
+              ? state.settings.shortBreakDuration
+              : state.settings.longBreakDuration;
 
         set({
           timeLeft: duration,
@@ -163,7 +165,7 @@ export const useTimerStore = create<TimerStoreState>()(
 
       completeTimer: () => {
         const state = get();
-        let updates: Partial<TimerState> = {
+        const updates: Partial<TimerState> = {
           isRunning: false,
           isPaused: false,
           isCompleted: true,
@@ -172,15 +174,18 @@ export const useTimerStore = create<TimerStoreState>()(
         if (state.currentMode === 'work') {
           // Completed a work session
           updates.todayPomodoros = state.todayPomodoros + 1;
-          updates.todayWorkTime = state.todayWorkTime + (state.settings.workDuration - state.timeLeft);
+          updates.todayWorkTime =
+            state.todayWorkTime +
+            (state.settings.workDuration - state.timeLeft);
           updates.completedCycles = state.completedCycles + 1;
-          
+
           // Automatically switch to break
           if (state.currentSession >= state.settings.sessionsUntilLongBreak) {
             updates.currentMode = 'longBreak';
             updates.timeLeft = state.settings.longBreakDuration;
             updates.currentSession = 1;
-            updates.sessionsUntilLongBreak = state.settings.sessionsUntilLongBreak;
+            updates.sessionsUntilLongBreak =
+              state.settings.sessionsUntilLongBreak;
           } else {
             updates.currentMode = 'shortBreak';
             updates.timeLeft = state.settings.shortBreakDuration;
@@ -194,7 +199,7 @@ export const useTimerStore = create<TimerStoreState>()(
         }
 
         set(updates);
-        
+
         // Auto-start next session if enabled
         if (
           (state.currentMode === 'work' && state.settings.autoStartBreaks) ||
@@ -210,10 +215,12 @@ export const useTimerStore = create<TimerStoreState>()(
         const state = get();
         if (state.isRunning) return; // Don't allow switching while running
 
-        const duration = 
-          mode === 'work' ? state.settings.workDuration :
-          mode === 'shortBreak' ? state.settings.shortBreakDuration :
-          state.settings.longBreakDuration;
+        const duration =
+          mode === 'work'
+            ? state.settings.workDuration
+            : mode === 'shortBreak'
+              ? state.settings.shortBreakDuration
+              : state.settings.longBreakDuration;
 
         set({
           currentMode: mode,
@@ -227,21 +234,23 @@ export const useTimerStore = create<TimerStoreState>()(
       updateSettings: (newSettings: Partial<TimerSettings>) => {
         const state = get();
         const updatedSettings = { ...state.settings, ...newSettings };
-        
-        set((state) => ({
+
+        set(state => ({
           settings: updatedSettings,
           // Update current timer if not running
-          ...((!state.isRunning) && {
-            timeLeft: 
-              state.currentMode === 'work' ? updatedSettings.workDuration :
-              state.currentMode === 'shortBreak' ? updatedSettings.shortBreakDuration :
-              updatedSettings.longBreakDuration
-          })
+          ...(!state.isRunning && {
+            timeLeft:
+              state.currentMode === 'work'
+                ? updatedSettings.workDuration
+                : state.currentMode === 'shortBreak'
+                  ? updatedSettings.shortBreakDuration
+                  : updatedSettings.longBreakDuration,
+          }),
         }));
       },
 
       setState: (updates: Partial<TimerState>) => {
-        set((state) => ({ ...state, ...updates }));
+        set(state => ({ ...state, ...updates }));
       },
 
       // Getters
@@ -264,17 +273,19 @@ export const useTimerStore = create<TimerStoreState>()(
 
       getCurrentProgress: (): number => {
         const state = get();
-        const totalDuration = 
-          state.currentMode === 'work' ? state.settings.workDuration :
-          state.currentMode === 'shortBreak' ? state.settings.shortBreakDuration :
-          state.settings.longBreakDuration;
-        
+        const totalDuration =
+          state.currentMode === 'work'
+            ? state.settings.workDuration
+            : state.currentMode === 'shortBreak'
+              ? state.settings.shortBreakDuration
+              : state.settings.longBreakDuration;
+
         return ((totalDuration - state.timeLeft) / totalDuration) * 100;
       },
     }),
     {
       name: 'timer-storage',
-      partialize: (state) => ({
+      partialize: state => ({
         currentMode: state.currentMode,
         currentSession: state.currentSession,
         sessionsUntilLongBreak: state.sessionsUntilLongBreak,

@@ -9,7 +9,7 @@ import type { TimerMode } from '../types/timer';
  */
 export function useTimer() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const {
     timeLeft,
     currentMode,
@@ -37,7 +37,7 @@ export function useTimer() {
     if (isRunning && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
         const currentTimeLeft = useTimerStore.getState().timeLeft;
-        
+
         if (currentTimeLeft <= 1) {
           // Timer completed
           useTimerStore.getState().completeTimer();
@@ -126,7 +126,9 @@ export function useTimer() {
   // Auto-suggest next mode based on session count
   const suggestedNextMode = (): TimerMode => {
     if (currentMode === 'work') {
-      return currentSession >= settings.sessionsUntilLongBreak ? 'longBreak' : 'shortBreak';
+      return currentSession >= settings.sessionsUntilLongBreak
+        ? 'longBreak'
+        : 'shortBreak';
     }
     return 'work';
   };
@@ -161,21 +163,21 @@ export function useTimer() {
     isPaused,
     isIdle,
     isCompleted,
-    
+
     // Session tracking
     currentSession,
     sessionsUntilLongBreak,
     completedCycles,
     currentCycleProgress,
-    
+
     // Statistics
     todayPomodoros,
     todayWorkTime,
     sessionStats,
-    
+
     // Settings
     settings,
-    
+
     // Actions
     startTimer: handleStart,
     pauseTimer: handlePause,

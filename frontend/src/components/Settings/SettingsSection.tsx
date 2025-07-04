@@ -32,9 +32,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   return (
     <div style={sectionStyle} data-testid={testId}>
       <div style={titleStyle}>{title}</div>
-      <div style={contentStyle}>
-        {children}
-      </div>
+      <div style={contentStyle}>{children}</div>
     </div>
   );
-}; 
+};

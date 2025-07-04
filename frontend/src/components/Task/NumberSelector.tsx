@@ -44,34 +44,36 @@ export const NumberSelector: React.FC<NumberSelectorProps> = ({
 
   return (
     <div className={`form-group ${className}`}>
-      <label id={labelId} className="input-label">{label}</label>
-      <div className="number-input" role="group" aria-labelledby={labelId}>
+      <label id={labelId} className='input-label'>
+        {label}
+      </label>
+      <div className='number-input' role='group' aria-labelledby={labelId}>
         <button
-          type="button"
-          className="number-button"
+          type='button'
+          className='number-button'
           onClick={handleDecrementClick}
-          onKeyDown={(e) => handleKeyDown(e, handleDecrementClick)}
+          onKeyDown={e => handleKeyDown(e, handleDecrementClick)}
           disabled={isAtMin}
-          aria-label="减少"
+          aria-label='减少'
           tabIndex={0}
         >
           -
         </button>
-        <div 
-          className="number-value" 
-          aria-live="polite"
+        <div
+          className='number-value'
+          aria-live='polite'
           aria-label={`当前值: ${value}`}
-          role="status"
+          role='status'
         >
           {value}
         </div>
         <button
-          type="button"
-          className="number-button"
+          type='button'
+          className='number-button'
           onClick={handleIncrementClick}
-          onKeyDown={(e) => handleKeyDown(e, handleIncrementClick)}
+          onKeyDown={e => handleKeyDown(e, handleIncrementClick)}
           disabled={isAtMax}
-          aria-label="增加"
+          aria-label='增加'
           tabIndex={0}
         >
           +
@@ -79,4 +81,4 @@ export const NumberSelector: React.FC<NumberSelectorProps> = ({
       </div>
     </div>
   );
-}; 
+};

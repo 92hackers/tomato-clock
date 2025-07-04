@@ -36,7 +36,7 @@ describe('TaskStore', () => {
 
     it('should update a task', () => {
       const store = useTaskStore.getState();
-      
+
       // Add a task first
       store.addTask({
         title: '原始任务',
@@ -61,7 +61,7 @@ describe('TaskStore', () => {
 
     it('should delete a task', () => {
       const store = useTaskStore.getState();
-      
+
       // Add two tasks
       store.addTask({ title: '任务1', estimatedPomodoros: 2 });
       store.addTask({ title: '任务2', estimatedPomodoros: 3 });
@@ -79,7 +79,7 @@ describe('TaskStore', () => {
 
     it('should complete a task', () => {
       const store = useTaskStore.getState();
-      
+
       store.addTask({ title: '待完成任务', estimatedPomodoros: 2 });
       const taskId = useTaskStore.getState().tasks[0].id;
 
@@ -91,7 +91,7 @@ describe('TaskStore', () => {
 
     it('should select a task', () => {
       const store = useTaskStore.getState();
-      
+
       store.addTask({ title: '可选择任务', estimatedPomodoros: 2 });
       const taskId = useTaskStore.getState().tasks[0].id;
 
@@ -102,12 +102,12 @@ describe('TaskStore', () => {
 
     it('should increment task pomodoro count', () => {
       const store = useTaskStore.getState();
-      
+
       store.addTask({ title: '番茄任务', estimatedPomodoros: 4 });
       const taskId = useTaskStore.getState().tasks[0].id;
 
       store.incrementTaskPomodoro(taskId);
-      
+
       let task = useTaskStore.getState().tasks[0];
       expect(task.completedPomodoros).toBe(1);
 
@@ -119,7 +119,7 @@ describe('TaskStore', () => {
 
     it('should not exceed estimated pomodoros when incrementing', () => {
       const store = useTaskStore.getState();
-      
+
       store.addTask({ title: '限制任务', estimatedPomodoros: 2 });
       const taskId = useTaskStore.getState().tasks[0].id;
 
@@ -136,11 +136,11 @@ describe('TaskStore', () => {
   describe('Task Getters', () => {
     beforeEach(() => {
       const store = useTaskStore.getState();
-      
+
       // Add sample tasks
       store.addTask({ title: '任务1', estimatedPomodoros: 2 });
       store.addTask({ title: '任务2', estimatedPomodoros: 3 });
-      
+
       // Complete one task
       const tasks = useTaskStore.getState().tasks;
       store.completeTask(tasks[0].id);
@@ -163,7 +163,7 @@ describe('TaskStore', () => {
 
       store.selectTask(taskId);
       const selectedTask = store.getSelectedTask();
-      
+
       expect(selectedTask).toBeDefined();
       expect(selectedTask?.title).toBe('任务2');
     });
@@ -171,7 +171,7 @@ describe('TaskStore', () => {
     it('should get completed tasks', () => {
       const store = useTaskStore.getState();
       const completedTasks = store.getCompletedTasks();
-      
+
       expect(completedTasks).toHaveLength(1);
       expect(completedTasks[0].title).toBe('任务1');
       expect(completedTasks[0].completed).toBe(true);
@@ -180,7 +180,7 @@ describe('TaskStore', () => {
     it('should get active tasks', () => {
       const store = useTaskStore.getState();
       const activeTasks = store.getActiveTasks();
-      
+
       expect(activeTasks).toHaveLength(1);
       expect(activeTasks[0].title).toBe('任务2');
       expect(activeTasks[0].completed).toBe(false);
@@ -189,7 +189,7 @@ describe('TaskStore', () => {
     it('should get today tasks', () => {
       const store = useTaskStore.getState();
       const todayTasks = store.getTodayTasks();
-      
+
       // All tasks were created today
       expect(todayTasks).toHaveLength(2);
     });
@@ -198,7 +198,7 @@ describe('TaskStore', () => {
   describe('Task Selection', () => {
     it('should clear selected task when deleting selected task', () => {
       const store = useTaskStore.getState();
-      
+
       store.addTask({ title: '将被删除的任务', estimatedPomodoros: 2 });
       const taskId = useTaskStore.getState().tasks[0].id;
 
@@ -213,22 +213,22 @@ describe('TaskStore', () => {
 
     it('should keep selected task when deleting other task', () => {
       const store = useTaskStore.getState();
-      
+
       store.addTask({ title: '选中任务', estimatedPomodoros: 2 });
       store.addTask({ title: '将被删除任务', estimatedPomodoros: 3 });
-      
+
       const tasks = useTaskStore.getState().tasks;
       const selectedTaskId = tasks[0].id;
       const toDeleteTaskId = tasks[1].id;
 
       // Select first task
       store.selectTask(selectedTaskId);
-      
+
       // Delete second task
       store.deleteTask(toDeleteTaskId);
-      
+
       // Selected task should remain
       expect(useTaskStore.getState().selectedTaskId).toBe(selectedTaskId);
     });
   });
-}); 
+});

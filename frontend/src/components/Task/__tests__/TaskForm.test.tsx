@@ -57,7 +57,9 @@ describe('TaskForm', () => {
     render(<TaskForm {...defaultProps} />);
 
     expect(screen.getByLabelText('任务名称')).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: '预计番茄数' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: '预计番茄数' })
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('备注')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '保存' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
@@ -83,7 +85,10 @@ describe('TaskForm', () => {
     const titleInput = screen.getByLabelText('任务名称');
     fireEvent.change(titleInput, { target: { value: 'New Task' } });
 
-    expect(mockUseTaskForm.updateField).toHaveBeenCalledWith('title', 'New Task');
+    expect(mockUseTaskForm.updateField).toHaveBeenCalledWith(
+      'title',
+      'New Task'
+    );
   });
 
   it('should call updateField when notes input changes', () => {
@@ -92,7 +97,10 @@ describe('TaskForm', () => {
     const notesInput = screen.getByLabelText('备注');
     fireEvent.change(notesInput, { target: { value: 'New notes' } });
 
-    expect(mockUseTaskForm.updateField).toHaveBeenCalledWith('notes', 'New notes');
+    expect(mockUseTaskForm.updateField).toHaveBeenCalledWith(
+      'notes',
+      'New notes'
+    );
   });
 
   it('should call increment/decrement when number selector buttons are clicked', () => {
@@ -180,7 +188,9 @@ describe('TaskForm', () => {
 
     expect(screen.getByText(/确定要放弃更改吗/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确定' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '继续编辑' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '继续编辑' })
+    ).toBeInTheDocument();
   });
 
   it('should proceed with cancel when confirmed in dialog', () => {
@@ -246,4 +256,4 @@ describe('TaskForm', () => {
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Initial notes')).toBeInTheDocument();
   });
-}); 
+});

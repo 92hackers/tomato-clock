@@ -2753,3 +2753,436 @@ docker-compose exec caddy caddy config --pretty
 # 重新加载配置（不停机）
 docker-compose exec caddy caddy reload
 ``` 
+
+## 3. 数据可视化与图表系统
+
+### 3.1 Chart.js 集成方案
+
+番茄时钟应用集成了 Chart.js 图表库来实现数据统计的可视化展示，提供直观的数据分析体验。
+
+#### 3.1.1 技术栈选择
+
+- **Chart.js 4.x**: 现代化的 HTML5 Canvas 图表库
+- **react-chartjs-2**: Chart.js 的官方 React 包装器
+- **TypeScript**: 完整的类型安全支持
+- **Tailwind CSS**: 响应式样式和主题支持
+
+#### 3.1.2 图表组件架构
+
+```typescript
+// 图表组件基础类型定义
+interface ChartProps {
+  data: ChartData;
+  options?: ChartOptions;
+  width?: number;
+  height?: number;
+  className?: string;
+}
+
+// 统计数据类型
+interface StatisticsData {
+  dailyFocus: DailyFocusData[];
+  weeklyTrend: WeeklyTrendData[];
+  monthlyStats: MonthlyStatsData[];
+  taskCompletion: TaskCompletionData;
+}
+
+// 时间维度类型
+type TimePeriod = 'today' | 'week' | 'month';
+```
+
+**核心图表组件**:
+
+1. **LineChart 组件** - 专注时间趋势图
+```typescript
+// frontend/src/components/statistics/LineChart.tsx
+interface LineChartProps extends ChartProps {
+  data: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      borderColor: string;
+      backgroundColor: string;
+    }[];
+  };
+}
+
+export const LineChart: React.FC<LineChartProps> = ({ data, options = {}, ...props }) => {
+  const defaultOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      y: {
+        display: true,
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+    },
+  };
+
+  return (
+    <Line 
+      data={data} 
+      options={{ ...defaultOptions, ...options }} 
+      {...props}
+    />
+  );
+};
+```
+
+2. **BarChart 组件** - 任务完成统计
+```typescript
+// frontend/src/components/statistics/BarChart.tsx
+export const BarChart: React.FC<ChartProps> = ({ data, options = {}, ...props }) => {
+  const defaultOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            return `${context.dataset.label}: ${context.parsed.y} 个`;
+          }
+        }
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
+  return (
+    <Bar 
+      data={data} 
+      options={{ ...defaultOptions, ...options }} 
+      {...props}
+    />
+  );
+};
+```
+
+3. **DoughnutChart 组件** - 时间分布图
+```typescript
+// frontend/src/components/statistics/DoughnutChart.tsx
+export const DoughnutChart: React.FC<ChartProps> = ({ data, options = {}, ...props }) => {
+  const defaultOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const percentage = ((context.parsed / context.dataset.data.reduce((a: number, b: number) => a + b, 0)) * 100).toFixed(1);
+            return `${context.label}: ${context.parsed} 分钟 (${percentage}%)`;
+          }
+        }
+      },
+    },
+    cutout: '50%',
+  };
+
+  return (
+    <Doughnut 
+      data={data} 
+      options={{ ...defaultOptions, ...options }} 
+      {...props}
+    />
+  );
+};
+```
+
+#### 3.1.3 数据管理 Hook
+
+```typescript
+// frontend/src/hooks/useStatisticsData.ts
+export const useStatisticsData = (period: TimePeriod) => {
+  const [data, setData] = useState<StatisticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStatistics = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Mock data for development
+      const mockData = generateMockStatistics(period);
+      setData(mockData);
+      
+      // TODO: 集成后端 API
+      // const response = await api.get(`/api/statistics?period=${period}`);
+      // setData(response.data);
+    } catch (err) {
+      setError('Failed to fetch statistics data');
+      console.error('Statistics fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
+
+  return { data, loading, error, refetch: fetchStatistics };
+};
+```
+
+#### 3.1.4 图表工具函数
+
+```typescript
+// frontend/src/utils/chartHelpers.ts
+export const generateChartColors = (count: number): string[] => {
+  const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+    '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+  ];
+  return colors.slice(0, count);
+};
+
+export const formatChartData = (
+  rawData: any[], 
+  type: 'line' | 'bar' | 'doughnut'
+): ChartData => {
+  switch (type) {
+    case 'line':
+      return {
+        labels: rawData.map(item => item.date),
+        datasets: [{
+          label: '专注时间 (分钟)',
+          data: rawData.map(item => item.focusTime),
+          borderColor: '#007AFF',
+          backgroundColor: 'rgba(0, 122, 255, 0.1)',
+          tension: 0.4,
+        }],
+      };
+    
+    case 'bar':
+      return {
+        labels: rawData.map(item => item.category),
+        datasets: [{
+          label: '任务数量',
+          data: rawData.map(item => item.count),
+          backgroundColor: generateChartColors(rawData.length),
+        }],
+      };
+    
+    case 'doughnut':
+      return {
+        labels: rawData.map(item => item.label),
+        datasets: [{
+          data: rawData.map(item => item.value),
+          backgroundColor: generateChartColors(rawData.length),
+        }],
+      };
+  }
+};
+
+export const generateMockStatistics = (period: TimePeriod): StatisticsData => {
+  // Mock data generation logic for development
+  const now = new Date();
+  const data: StatisticsData = {
+    dailyFocus: [],
+    weeklyTrend: [],
+    monthlyStats: [],
+    taskCompletion: {
+      completed: 0,
+      total: 0,
+      categories: [],
+    },
+  };
+
+  // Generate mock data based on period
+  switch (period) {
+    case 'today':
+      // Generate hourly data for today
+      for (let hour = 0; hour < 24; hour++) {
+        data.dailyFocus.push({
+          hour,
+          focusTime: Math.floor(Math.random() * 60),
+          tasksCompleted: Math.floor(Math.random() * 5),
+        });
+      }
+      break;
+    
+    case 'week':
+      // Generate daily data for this week
+      for (let day = 0; day < 7; day++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - (6 - day));
+        data.weeklyTrend.push({
+          date: date.toISOString().split('T')[0],
+          focusTime: Math.floor(Math.random() * 300) + 60,
+          tasksCompleted: Math.floor(Math.random() * 10) + 1,
+        });
+      }
+      break;
+    
+    case 'month':
+      // Generate weekly data for this month
+      for (let week = 0; week < 4; week++) {
+        data.monthlyStats.push({
+          week: `第${week + 1}周`,
+          focusTime: Math.floor(Math.random() * 1200) + 300,
+          tasksCompleted: Math.floor(Math.random() * 25) + 5,
+        });
+      }
+      break;
+  }
+
+  return data;
+};
+```
+
+#### 3.1.5 响应式设计实现
+
+```css
+/* 图表容器响应式样式 */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    height: 300px;
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container {
+    height: 250px;
+    margin-bottom: 1rem;
+  }
+}
+
+/* 图表卡片样式 */
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .chart-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+```
+
+#### 3.1.6 性能优化策略
+
+1. **懒加载图表组件**
+```typescript
+// 动态加载图表组件
+const LineChart = lazy(() => import('./LineChart'));
+const BarChart = lazy(() => import('./BarChart'));
+const DoughnutChart = lazy(() => import('./DoughnutChart'));
+
+// 使用 Suspense 包装
+<Suspense fallback={<ChartSkeleton />}>
+  <LineChart data={chartData} />
+</Suspense>
+```
+
+2. **数据缓存机制**
+```typescript
+// 使用 React Query 缓存统计数据
+export const useStatisticsQuery = (period: TimePeriod) => {
+  return useQuery({
+    queryKey: ['statistics', period],
+    queryFn: () => fetchStatistics(period),
+    staleTime: 5 * 60 * 1000, // 5分钟
+    cacheTime: 10 * 60 * 1000, // 10分钟
+  });
+};
+```
+
+3. **图表渲染优化**
+```typescript
+// 使用 React.memo 优化重渲染
+export const OptimizedLineChart = React.memo(LineChart, (prevProps, nextProps) => {
+  return JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data);
+});
+```
+
+#### 3.1.7 测试策略
+
+```typescript
+// 图表组件测试示例
+describe('LineChart', () => {
+  const mockData = {
+    labels: ['1月', '2月', '3月'],
+    datasets: [{
+      label: '专注时间',
+      data: [120, 150, 180],
+      borderColor: '#007AFF',
+    }],
+  };
+
+  it('renders chart with correct data', () => {
+    render(<LineChart data={mockData} />);
+    
+    // 验证图表是否正确渲染
+    expect(screen.getByRole('img')).toBeInTheDocument();
+  });
+
+  it('handles responsive resize', () => {
+    const { rerender } = render(<LineChart data={mockData} />);
+    
+    // 模拟窗口大小变化
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 320,
+    });
+    
+    rerender(<LineChart data={mockData} />);
+    
+    // 验证响应式行为
+    expect(screen.getByRole('img')).toHaveStyle('height: 250px');
+  });
+});
+```
+
+// ... existing code ...

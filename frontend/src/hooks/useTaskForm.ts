@@ -1,6 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import { TaskFormData, ValidationResult } from '../types/task';
-import { validateTaskForm, validateField, getDefaultFormData, VALIDATION_RULES } from '../utils/formValidation';
+import {
+  validateTaskForm,
+  validateField,
+  getDefaultFormData,
+  VALIDATION_RULES,
+} from '../utils/formValidation';
 
 export interface UseTaskFormReturn {
   // Form state
@@ -24,8 +29,11 @@ export function useTaskForm(
   initialData?: TaskFormData,
   onSubmit?: (data: TaskFormData) => Promise<void>
 ): UseTaskFormReturn {
-  const defaultData = useMemo(() => initialData || getDefaultFormData(), [initialData]);
-  
+  const defaultData = useMemo(
+    () => initialData || getDefaultFormData(),
+    [initialData]
+  );
+
   const [formData, setFormData] = useState<TaskFormData>(defaultData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,32 +46,38 @@ export function useTaskForm(
   }, [formData]);
 
   // 更新字段值
-  const updateField = useCallback((fieldName: keyof TaskFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: value,
-    }));
+  const updateField = useCallback(
+    (fieldName: keyof TaskFormData, value: any) => {
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: value,
+      }));
 
-    // 实时验证字段
-    const fieldError = validateField(fieldName, value);
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      if (fieldError) {
-        newErrors[fieldName] = fieldError;
-      } else {
-        delete newErrors[fieldName];
-      }
-      return newErrors;
-    });
+      // 实时验证字段
+      const fieldError = validateField(fieldName, value);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        if (fieldError) {
+          newErrors[fieldName] = fieldError;
+        } else {
+          delete newErrors[fieldName];
+        }
+        return newErrors;
+      });
 
-    setIsDirty(true);
-  }, []);
+      setIsDirty(true);
+    },
+    []
+  );
 
   // 增加番茄数
   const incrementPomodoros = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      estimatedPomodoros: Math.min(prev.estimatedPomodoros + 1, VALIDATION_RULES.estimatedPomodoros.max),
+      estimatedPomodoros: Math.min(
+        prev.estimatedPomodoros + 1,
+        VALIDATION_RULES.estimatedPomodoros.max
+      ),
     }));
     setIsDirty(true);
   }, []);
@@ -72,7 +86,10 @@ export function useTaskForm(
   const decrementPomodoros = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      estimatedPomodoros: Math.max(prev.estimatedPomodoros - 1, VALIDATION_RULES.estimatedPomodoros.min),
+      estimatedPomodoros: Math.max(
+        prev.estimatedPomodoros - 1,
+        VALIDATION_RULES.estimatedPomodoros.min
+      ),
     }));
     setIsDirty(true);
   }, []);
@@ -100,7 +117,7 @@ export function useTaskForm(
   // 提交表单
   const submitForm = useCallback(async () => {
     const validation = validateForm();
-    
+
     if (!validation.isValid) {
       return;
     }
@@ -133,4 +150,4 @@ export function useTaskForm(
     setSubmitting,
     submitForm,
   };
-} 
+}
