@@ -424,6 +424,362 @@ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica
 - **进度指示** - 成就解锁进度
 - **技巧卡片** - 专注技巧的卡片展示
 
+### 8.5 登录界面
+
+**设计理念**
+- 简洁优雅的iOS风格设计，营造安全可信的认证环境
+- 最小化干扰元素，专注于认证流程本身
+- 清晰的视觉层次和友好的错误提示
+
+**布局结构**
+```
+┌─────────────────────────┐
+│      应用标志/标题        │
+│    "欢迎回来"欢迎语      │
+├─────────────────────────┤
+│                        │
+│    [邮箱输入框]         │
+│    [密码输入框]         │
+│                        │
+│    [登录按钮]           │
+│                        │
+│   "还没有账户？注册"     │
+│                        │
+└─────────────────────────┘
+```
+
+**组件规范**
+```css
+/* 认证容器 */
+.auth-container {
+  max-width: 350px;
+  padding: 40px 30px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* 应用标志区域 */
+.auth-logo {
+  margin-bottom: 24px;
+}
+
+.auth-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  font-size: 17px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+/* 输入框样式 */
+.auth-input {
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--gray-50);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: 17px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.auth-input:focus {
+  border-color: var(--primary-blue);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+.auth-input.error {
+  border-color: var(--primary-red);
+  background: rgba(255, 59, 48, 0.05);
+}
+
+/* 认证按钮 */
+.auth-button {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 24px 0;
+  transition: all 0.2s ease;
+}
+
+.auth-button:hover {
+  background: #0056CC;
+  transform: translateY(-1px);
+}
+
+.auth-button:disabled {
+  background: var(--gray-300);
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* 错误提示 */
+.auth-error {
+  color: var(--primary-red);
+  font-size: 14px;
+  text-align: left;
+  margin-top: -12px;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+/* 链接样式 */
+.auth-link {
+  color: var(--primary-blue);
+  text-decoration: none;
+  font-size: 15px;
+  transition: opacity 0.2s ease;
+}
+
+.auth-link:hover {
+  opacity: 0.7;
+}
+```
+
+**交互状态**
+- **默认状态** - 输入框透明背景，蓝色边框聚焦
+- **输入状态** - 实时验证，错误时红色边框和提示
+- **提交状态** - 按钮显示加载动画，禁用表单
+- **错误状态** - 统一的错误提示样式和恢复机制
+
+### 8.6 注册界面
+
+**设计理念**
+- 引导式的注册流程，降低用户心理负担
+- 实时验证反馈，提供即时的指导和确认
+- 清晰的服务条款展示，建立用户信任
+
+**布局结构**
+```
+┌─────────────────────────┐
+│      应用标志/标题        │
+│   "创建新账户"标题       │
+├─────────────────────────┤
+│                        │
+│    [用户名输入框]        │
+│    [邮箱输入框]         │
+│    [密码输入框]         │
+│    [确认密码输入框]      │
+│                        │
+│   ☑ 我同意服务条款      │
+│                        │
+│    [注册按钮]           │
+│                        │
+│   "已有账户？登录"       │
+│                        │
+└─────────────────────────┘
+```
+
+**特殊组件**
+```css
+/* 密码强度指示器 */
+.password-strength {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.strength-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gray-200);
+  transition: all 0.3s ease;
+}
+
+.strength-dot.active {
+  background: var(--primary-green);
+  transform: scale(1.2);
+}
+
+/* 服务条款复选框 */
+.terms-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 24px 0;
+  text-align: left;
+}
+
+.terms-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary-blue);
+}
+
+.terms-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.terms-link {
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.terms-link:hover {
+  text-decoration: underline;
+}
+```
+
+**验证反馈设计**
+- **实时验证** - 用户输入时即时显示验证结果
+- **成功指示** - 绿色对勾表示验证通过
+- **错误指示** - 红色感叹号和具体错误信息
+- **进度提示** - 密码强度可视化指示器
+
+### 8.7 认证状态指示
+
+**加载状态**
+```css
+/* 加载动画 */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 加载按钮 */
+.auth-button.loading {
+  position: relative;
+  color: transparent;
+}
+
+.auth-button.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+```
+
+**成功状态**
+```css
+/* 成功提示 */
+.auth-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(52, 199, 89, 0.1);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  border-radius: 8px;
+  color: var(--primary-green);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.success-icon::before {
+  content: "✓";
+  font-weight: bold;
+}
+```
+
+**错误状态**
+```css
+/* 全局错误提示 */
+.auth-error-banner {
+  padding: 12px 16px;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 8px;
+  color: var(--primary-red);
+  font-size: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.error-icon::before {
+  content: "⚠";
+  margin-right: 8px;
+}
+```
+
+### 8.8 无障碍访问设计
+
+**键盘导航**
+```css
+/* 焦点环 */
+.auth-input:focus-visible,
+.auth-button:focus-visible,
+.terms-checkbox input:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+}
+
+/* Tab顺序优化 */
+.auth-form input,
+.auth-form button {
+  tab-index: auto;
+}
+```
+
+**屏幕阅读器支持**
+```html
+<!-- ARIA标签示例 -->
+<div class="auth-container" role="main" aria-labelledby="auth-title">
+  <h1 id="auth-title">登录到番茄时钟</h1>
+  
+  <form role="form" aria-label="登录表单">
+    <input 
+      type="email" 
+      aria-label="邮箱地址"
+      aria-describedby="email-error"
+      aria-invalid="false"
+      tabindex="1"
+    />
+    
+    <div id="email-error" role="alert" aria-live="polite">
+      <!-- 错误信息 -->
+    </div>
+    
+    <button 
+      type="submit" 
+      aria-label="提交登录表单"
+      aria-describedby="login-status"
+      tabindex="3"
+    >
+      登录
+    </button>
+  </form>
+</div>
+```
+
+**色彩对比度**
+- 确保所有文字与背景的对比度至少为4.5:1
+- 错误状态的红色对比度符合可访问性标准
+- 提供高对比度模式选项
+
 ## 9. 可访问性设计
 
 ### 9.1 颜色对比

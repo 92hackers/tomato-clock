@@ -28,6 +28,93 @@
   .input {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
   }
+
+  /* iOS风格认证表单样式 */
+  .ios-card-style {
+    width: 100%;
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+  }
+
+  .ios-card-style .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+
+  .ios-card-style input {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  .ios-card-style input:focus {
+    outline: none;
+    border-color: #007aff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  }
+
+  .ios-card-style label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .ios-card-style button {
+    width: 100%;
+    padding: 15px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .ios-card-style button:hover:not(:disabled) {
+    background-color: #0056cc;
+    transform: translateY(-1px);
+  }
+
+  .ios-card-style button:focus {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+  }
+
+  .ios-card-style button:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .ios-card-style .text-red-500 {
+    color: #ff3b30;
+    font-size: 14px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ios-card-style .text-red-500.text-sm {
+    font-size: 14px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 8px;
+  }
 }
 
 @layer utilities {

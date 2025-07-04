@@ -1337,7 +1337,686 @@ func (s *SimpleSocketServer) NotifyTaskUpdate(userID string, taskData TaskSyncDa
 
 ## 5. 核心功能实现
 
-### 5.1 计时器核心逻辑
+### 5.1 用户认证系统
+
+#### 5.1.1 前端认证架构
+
+**认证状态管理**
+```typescript
+// store/authStore.ts
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+}
+
+interface AuthActions {
+  loginWithCredentials: (credentials: LoginCredentials) => Promise<void>;
+  registerWithCredentials: (credentials: RegisterCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+  clearAuthError: () => void;
+}
+
+export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
+  user: null,
+  token: null,
+  isLoading: false,
+  error: null,
+  isAuthenticated: false,
+
+  loginWithCredentials: async (credentials) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('/auth/login', credentials);
+      const { user, token } = response.data;
+      
+      // 存储令牌
+      localStorage.setItem('auth_token', token);
+      
+      // 设置 API 默认头部
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      set({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({
+        error: error.response?.data?.message || '登录失败',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  registerWithCredentials: async (credentials) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('/auth/register', credentials);
+      const { user, token } = response.data;
+      
+      localStorage.setItem('auth_token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      set({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({
+        error: error.response?.data?.message || '注册失败',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('登出请求失败:', error);
+    }
+    
+    // 清除本地存储
+    localStorage.removeItem('auth_token');
+    delete api.defaults.headers.common['Authorization'];
+    
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      error: null,
+    });
+  },
+
+  checkAuth: async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      return;
+    }
+    
+    set({ isLoading: true });
+    try {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const response = await api.get('/auth/me');
+      
+      set({
+        user: response.data,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      // 令牌无效，清除本地状态
+      localStorage.removeItem('auth_token');
+      delete api.defaults.headers.common['Authorization'];
+      
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
+  },
+
+  clearAuthError: () => set({ error: null }),
+}));
+```
+
+**认证 Hook**
+```typescript
+// hooks/useAuth.ts
+export const useAuth = () => {
+  const {
+    user,
+    token,
+    isLoading,
+    error,
+    isAuthenticated,
+    loginWithCredentials,
+    registerWithCredentials,
+    logout,
+    checkAuth,
+    clearAuthError,
+  } = useAuthStore();
+
+  // 初始化时检查认证状态
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  // 计算属性
+  const isLoggedIn = useMemo(() => isAuthenticated && user !== null, [isAuthenticated, user]);
+
+  return {
+    user,
+    token,
+    isLoading,
+    error,
+    isAuthenticated: isLoggedIn,
+    loginWithCredentials,
+    registerWithCredentials,
+    logout,
+    clearAuthError,
+  };
+};
+```
+
+**受保护路由组件**
+```typescript
+// components/auth/ProtectedRoute.tsx
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  loginPath?: string;
+  redirectOnUnauth?: boolean;
+  requiredRole?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  loginPath = '/auth/login',
+  redirectOnUnauth = true,
+  requiredRole,
+}) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // 显示加载状态
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // 未认证处理
+  if (!isAuthenticated) {
+    if (redirectOnUnauth) {
+      const returnUrl = encodeURIComponent(pathname);
+      router.push(`${loginPath}?returnUrl=${returnUrl}`);
+      return null;
+    }
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">请先登录</h2>
+          <Link
+            href={loginPath}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            去登录
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // 角色权限检查
+  if (requiredRole && user?.role !== requiredRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">权限不足</h2>
+          <p className="text-gray-600">您没有访问此页面的权限</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+```
+
+#### 5.1.2 后端认证架构
+
+**认证服务**
+```go
+// services/auth_service.go
+type AuthService struct {
+    userRepo repository.UserRepository
+    config   *config.Config
+}
+
+func (s *AuthService) Register(req RegisterRequest) (*User, string, error) {
+    // 验证用户名是否已存在
+    if existingUser, _ := s.userRepo.FindByUsername(req.Username); existingUser != nil {
+        return nil, "", errors.New("用户名已存在")
+    }
+
+    // 验证邮箱是否已存在
+    if existingUser, _ := s.userRepo.FindByEmail(req.Email); existingUser != nil {
+        return nil, "", errors.New("邮箱已被注册")
+    }
+
+    // 验证密码强度
+    if err := s.validatePassword(req.Password); err != nil {
+        return nil, "", err
+    }
+
+    // 加密密码
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+    if err != nil {
+        return nil, "", err
+    }
+
+    // 创建用户
+    user := &models.User{
+        Username: req.Username,
+        Email:    req.Email,
+        Password: string(hashedPassword),
+        Role:     "user",
+        Status:   "active",
+    }
+
+    if err := s.userRepo.Create(user); err != nil {
+        return nil, "", err
+    }
+
+    // 生成 JWT 令牌
+    token, err := s.generateJWT(user)
+    if err != nil {
+        return nil, "", err
+    }
+
+    return user, token, nil
+}
+
+func (s *AuthService) Login(req LoginRequest) (*User, string, error) {
+    // 根据邮箱查找用户
+    user, err := s.userRepo.FindByEmail(req.Email)
+    if err != nil {
+        return nil, "", errors.New("用户不存在")
+    }
+
+    // 验证密码
+    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+        return nil, "", errors.New("密码错误")
+    }
+
+    // 检查账户状态
+    if user.Status != "active" {
+        return nil, "", errors.New("账户已被禁用")
+    }
+
+    // 生成 JWT 令牌
+    token, err := s.generateJWT(user)
+    if err != nil {
+        return nil, "", err
+    }
+
+    // 更新最后登录时间
+    user.LastLoginAt = time.Now()
+    s.userRepo.Update(user)
+
+    return user, token, nil
+}
+
+func (s *AuthService) generateJWT(user *models.User) (string, error) {
+    claims := jwt.MapClaims{
+        "user_id":   user.ID,
+        "username":  user.Username,
+        "email":     user.Email,
+        "role":      user.Role,
+        "exp":       time.Now().Add(time.Hour * 24 * 7).Unix(), // 7天过期
+        "iat":       time.Now().Unix(),
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString([]byte(s.config.JWTSecret))
+}
+
+func (s *AuthService) ValidateToken(tokenString string) (*models.User, error) {
+    token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+        }
+        return []byte(s.config.JWTSecret), nil
+    })
+
+    if err != nil {
+        return nil, err
+    }
+
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok || !token.Valid {
+        return nil, errors.New("invalid token")
+    }
+
+    userID := uint(claims["user_id"].(float64))
+    user, err := s.userRepo.FindByID(userID)
+    if err != nil {
+        return nil, errors.New("user not found")
+    }
+
+    return user, nil
+}
+```
+
+**认证中间件**
+```go
+// middleware/auth.go
+func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" {
+            c.JSON(401, gin.H{"error": "Missing authorization header"})
+            c.Abort()
+            return
+        }
+
+        tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+        
+        user, err := authService.ValidateToken(tokenString)
+        if err != nil {
+            c.JSON(401, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
+
+        // 将用户信息存储在上下文中
+        c.Set("user", user)
+        c.Next()
+    }
+}
+
+func RequireRole(role string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        user, exists := c.Get("user")
+        if !exists {
+            c.JSON(401, gin.H{"error": "Unauthorized"})
+            c.Abort()
+            return
+        }
+
+        if user.(*models.User).Role != role {
+            c.JSON(403, gin.H{"error": "Insufficient permissions"})
+            c.Abort()
+            return
+        }
+
+        c.Next()
+    }
+}
+```
+
+**认证处理器**
+```go
+// handlers/auth.go
+type AuthHandler struct {
+    authService *services.AuthService
+}
+
+func (h *AuthHandler) Register(c *gin.Context) {
+    var req RegisterRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(400, gin.H{"error": err.Error()})
+        return
+    }
+
+    user, token, err := h.authService.Register(req)
+    if err != nil {
+        c.JSON(400, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(201, gin.H{
+        "success": true,
+        "data": gin.H{
+            "user":  user,
+            "token": token,
+        },
+        "message": "注册成功",
+    })
+}
+
+func (h *AuthHandler) Login(c *gin.Context) {
+    var req LoginRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(400, gin.H{"error": err.Error()})
+        return
+    }
+
+    user, token, err := h.authService.Login(req)
+    if err != nil {
+        c.JSON(401, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(200, gin.H{
+        "success": true,
+        "data": gin.H{
+            "user":  user,
+            "token": token,
+        },
+        "message": "登录成功",
+    })
+}
+
+func (h *AuthHandler) GetProfile(c *gin.Context) {
+    user, _ := c.Get("user")
+    c.JSON(200, gin.H{
+        "success": true,
+        "data": user,
+    })
+}
+```
+
+#### 5.1.3 表单验证系统
+
+**前端表单验证**
+```typescript
+// utils/auth.ts
+export const AUTH_VALIDATION_RULES = {
+  username: {
+    required: true,
+    minLength: 3,
+    maxLength: 20,
+    pattern: /^[a-zA-Z0-9_]+$/,
+  },
+  email: {
+    required: true,
+    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  },
+  password: {
+    required: true,
+    minLength: 8,
+    maxLength: 128,
+    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+  },
+};
+
+export function validateLoginForm(data: LoginFormData): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!data.email || data.email.trim().length === 0) {
+    errors.email = '请输入邮箱';
+  } else if (!AUTH_VALIDATION_RULES.email.pattern.test(data.email)) {
+    errors.email = '请输入有效的邮箱地址';
+  }
+
+  if (!data.password || data.password.length === 0) {
+    errors.password = '请输入密码';
+  } else if (data.password.length < AUTH_VALIDATION_RULES.password.minLength) {
+    errors.password = `密码至少需要${AUTH_VALIDATION_RULES.password.minLength}个字符`;
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
+export function validateRegisterForm(data: RegisterFormData): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  // 用户名验证
+  if (!data.username || data.username.trim().length === 0) {
+    errors.username = '请输入用户名';
+  } else if (data.username.length < AUTH_VALIDATION_RULES.username.minLength) {
+    errors.username = `用户名至少需要${AUTH_VALIDATION_RULES.username.minLength}个字符`;
+  } else if (!AUTH_VALIDATION_RULES.username.pattern.test(data.username)) {
+    errors.username = '用户名只能包含字母、数字和下划线';
+  }
+
+  // 邮箱验证
+  if (!data.email || data.email.trim().length === 0) {
+    errors.email = '请输入邮箱';
+  } else if (!AUTH_VALIDATION_RULES.email.pattern.test(data.email)) {
+    errors.email = '请输入有效的邮箱地址';
+  }
+
+  // 密码验证
+  if (!data.password || data.password.length === 0) {
+    errors.password = '请输入密码';
+  } else if (data.password.length < AUTH_VALIDATION_RULES.password.minLength) {
+    errors.password = `密码至少需要${AUTH_VALIDATION_RULES.password.minLength}个字符`;
+  } else if (!AUTH_VALIDATION_RULES.password.pattern.test(data.password)) {
+    errors.password = '密码必须包含大小写字母、数字和特殊字符';
+  }
+
+  // 确认密码验证
+  if (!data.confirmPassword || data.confirmPassword.length === 0) {
+    errors.confirmPassword = '请确认密码';
+  } else if (data.password !== data.confirmPassword) {
+    errors.confirmPassword = '密码不匹配';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+```
+
+**后端验证**
+```go
+// utils/validation.go
+func (s *AuthService) validatePassword(password string) error {
+    if len(password) < 8 {
+        return errors.New("密码至少需要8个字符")
+    }
+    
+    if len(password) > 128 {
+        return errors.New("密码不能超过128个字符")
+    }
+    
+    var hasUpper, hasLower, hasDigit, hasSpecial bool
+    
+    for _, char := range password {
+        switch {
+        case unicode.IsUpper(char):
+            hasUpper = true
+        case unicode.IsLower(char):
+            hasLower = true
+        case unicode.IsDigit(char):
+            hasDigit = true
+        case unicode.IsPunct(char) || unicode.IsSymbol(char):
+            hasSpecial = true
+        }
+    }
+    
+    if !hasUpper || !hasLower || !hasDigit || !hasSpecial {
+        return errors.New("密码必须包含大小写字母、数字和特殊字符")
+    }
+    
+    return nil
+}
+
+func validateEmail(email string) error {
+    emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+    if !emailRegex.MatchString(email) {
+        return errors.New("邮箱格式不正确")
+    }
+    return nil
+}
+
+func validateUsername(username string) error {
+    if len(username) < 3 {
+        return errors.New("用户名至少需要3个字符")
+    }
+    
+    if len(username) > 20 {
+        return errors.New("用户名不能超过20个字符")
+    }
+    
+    usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+    if !usernameRegex.MatchString(username) {
+        return errors.New("用户名只能包含字母、数字和下划线")
+    }
+    
+    return nil
+}
+```
+
+#### 5.1.4 API 客户端集成
+
+**HTTP 拦截器**
+```typescript
+// utils/apiClient.ts
+import axios, { AxiosInstance, AxiosError } from 'axios';
+import { useAuthStore } from '../store/authStore';
+
+// 创建 axios 实例
+const apiClient: AxiosInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8001/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// 请求拦截器
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 响应拦截器
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    const { response } = error;
+    
+    if (response?.status === 401) {
+      // 清除认证状态
+      localStorage.removeItem('auth_token');
+      useAuthStore.getState().logout();
+      
+      // 重定向到登录页
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/auth/login';
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;
+```
+
+### 5.2 计时器核心逻辑
 
 #### 前端计时器 Hook
 ```typescript
@@ -1431,7 +2110,7 @@ func (s *TimerService) StartTimer(userID uint, req StartTimerRequest) (*TimerSes
 }
 ```
 
-### 5.2 任务管理系统
+### 5.3 任务管理系统
 
 #### 前端任务状态管理
 ```typescript
@@ -1529,7 +2208,7 @@ func (s *TaskService) CompletePomodoro(userID uint, taskID uint) error {
 }
 ```
 
-### 5.3 统计分析系统
+### 5.4 统计分析系统
 
 #### 数据聚合服务
 ```go
