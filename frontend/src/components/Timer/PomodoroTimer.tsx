@@ -7,6 +7,7 @@ import { useTaskStore } from '../../store/taskStore';
 import { formatDuration } from '../../utils/timeFormatter';
 import type { TimerMode } from '../../types/timer';
 import type { Task } from '../../types/task';
+import { PlayIcon, PauseIcon, RefreshIcon } from '../icons';
 
 // 严格按照设计稿的样式
 const styles = `
@@ -103,45 +104,7 @@ const styles = `
     background-color: #e8e8e8;
   }
 
-  .controls {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 30px;
-  }
 
-  .control-btn {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    transition: all 0.2s;
-  }
-
-  .play-btn {
-    background-color: #007aff;
-    color: white;
-  }
-
-  .play-btn:hover {
-    background-color: #0056d6;
-    transform: scale(1.05);
-  }
-
-  .reset-btn {
-    background-color: #f0f0f0;
-    color: #555;
-  }
-
-  .reset-btn:hover {
-    background-color: #e8e8e8;
-    transform: scale(1.05);
-  }
 
   .section-header {
     display: flex;
@@ -481,12 +444,20 @@ export const PomodoroTimer: React.FC = () => {
         </div>
 
         {/* Control Buttons */}
-        <div className='controls'>
-          <button className='control-btn play-btn' onClick={handleTimerAction}>
-            {isRunning ? '⏸' : '▶'}
+        <div className='flex items-center justify-center space-x-4 mb-8'>
+          <button
+            onClick={handleTimerAction}
+            className='w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-110 shadow-lg'
+            aria-label={isRunning ? 'Pause timer' : 'Start timer'}
+          >
+            {isRunning ? <PauseIcon className='w-8 h-8' /> : <PlayIcon className='w-8 h-8' />}
           </button>
-          <button className='control-btn reset-btn' onClick={resetTimer}>
-            ↻
+          <button
+            onClick={resetTimer}
+            className='w-16 h-16 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-transform transform hover:scale-110 shadow-lg'
+            aria-label='Reset timer'
+          >
+            <RefreshIcon className='w-8 h-8' />
           </button>
         </div>
 
