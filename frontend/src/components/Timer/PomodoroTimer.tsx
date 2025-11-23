@@ -447,14 +447,14 @@ export const PomodoroTimer: React.FC = () => {
         <div className='flex items-center justify-center space-x-4 mb-8'>
           <button
             onClick={handleTimerAction}
-            className='w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-110 shadow-lg'
+            className='w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center outline-none focus:outline-none transition-transform transform hover:scale-110 shadow-lg'
             aria-label={isRunning ? 'Pause timer' : 'Start timer'}
           >
             {isRunning ? <PauseIcon className='w-8 h-8' /> : <PlayIcon className='w-8 h-8' />}
           </button>
           <button
             onClick={resetTimer}
-            className='w-16 h-16 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-transform transform hover:scale-110 shadow-lg'
+            className='w-16 h-16 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center outline-none focus:outline-none transition-transform transform hover:scale-110 shadow-lg'
             aria-label='Reset timer'
           >
             <RefreshIcon className='w-8 h-8' />

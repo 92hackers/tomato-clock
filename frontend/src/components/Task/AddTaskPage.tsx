@@ -12,12 +12,28 @@ export interface AddTaskPageProps {
 // Inline styles to match design specifications
 const styles = `
   .add-task-container {
-    width: 350px;
+    width: 100%;
+    max-width: 350px;
+    height: 774px;
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
     background: white;
     border-radius: 20px;
-    padding: 25px;
+    padding: 30px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     font-family: system-ui, -apple-system, sans-serif;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    padding: 40px 0;
   }
 
   .form-header {
@@ -91,52 +107,6 @@ const styles = `
     box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.1);
   }
 
-  .number-input {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .number-button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    background-color: #f0f0f0;
-    color: #555;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    font-weight: 600;
-  }
-
-  .number-button:hover:not(:disabled) {
-    background-color: #e0e0e0;
-    transform: scale(1.05);
-  }
-
-  .number-button:focus {
-    outline: 2px solid #007aff;
-    outline-offset: 2px;
-  }
-
-  .number-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .number-value {
-    font-size: 24px;
-    font-weight: 600;
-    color: #333;
-    min-width: 40px;
-    text-align: center;
-  }
-
   .form-actions {
     display: flex;
     gap: 12px;
@@ -201,103 +171,6 @@ const styles = `
     transform: none;
   }
 
-  .error-message {
-    color: #ff3b30;
-    font-size: 14px;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .error-message::before {
-    content: "⚠️";
-    font-size: 12px;
-  }
-
-  .dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .dialog {
-    background: white;
-    border-radius: 15px;
-    padding: 24px;
-    max-width: 300px;
-    width: 90%;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  }
-
-  .dialog-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 12px 0;
-    color: #333;
-  }
-
-  .dialog-message {
-    font-size: 14px;
-    color: #666;
-    margin: 0 0 20px 0;
-    line-height: 1.4;
-  }
-
-  .dialog-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .dialog-button {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .dialog-button.primary {
-    background-color: #007aff;
-    color: white;
-  }
-
-  .dialog-button.primary:hover {
-    background-color: #0056cc;
-  }
-
-  .dialog-button.secondary {
-    background-color: #f0f0f0;
-    color: #555;
-  }
-
-  .dialog-button.secondary:hover {
-    background-color: #e0e0e0;
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   @media (max-width: 480px) {
     .add-task-container {
       width: 100%;
@@ -345,9 +218,11 @@ export const AddTaskPage: React.FC<AddTaskPageProps> = ({ className = '' }) => {
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className={`add-task-container ${className}`}>
-        <FormHeader title='添加任务' onBack={handleCancel} />
+        <div className="content-wrapper">
+          <FormHeader title='添加任务' onBack={handleCancel} />
 
-        <TaskForm onSubmit={handleSubmit} onCancel={handleCancel} />
+          <TaskForm onSubmit={handleSubmit} onCancel={handleCancel} />
+        </div>
       </div>
     </>
   );

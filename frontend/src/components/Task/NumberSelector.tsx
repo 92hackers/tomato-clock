@@ -47,10 +47,14 @@ export const NumberSelector: React.FC<NumberSelectorProps> = ({
       <label id={labelId} className='input-label'>
         {label}
       </label>
-      <div className='number-input' role='group' aria-labelledby={labelId}>
+      <div
+        className='flex items-center justify-between'
+        role='group'
+        aria-labelledby={labelId}
+      >
         <button
           type='button'
-          className='number-button'
+          className='number-button p-2 rounded-full bg-gray-200 text-gray-700 disabled:opacity-50'
           onClick={handleDecrementClick}
           onKeyDown={e => handleKeyDown(e, handleDecrementClick)}
           disabled={isAtMin}
@@ -60,7 +64,7 @@ export const NumberSelector: React.FC<NumberSelectorProps> = ({
           -
         </button>
         <div
-          className='number-value'
+          className='number-value text-lg font-semibold'
           aria-live='polite'
           aria-label={`当前值: ${value}`}
           role='status'
@@ -69,7 +73,7 @@ export const NumberSelector: React.FC<NumberSelectorProps> = ({
         </div>
         <button
           type='button'
-          className='number-button'
+          className='number-button p-2 rounded-full bg-gray-200 text-gray-700 disabled:opacity-50'
           onClick={handleIncrementClick}
           onKeyDown={e => handleKeyDown(e, handleIncrementClick)}
           disabled={isAtMax}

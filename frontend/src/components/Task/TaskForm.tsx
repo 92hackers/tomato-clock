@@ -133,7 +133,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     <>
       <form
         onSubmit={handleSubmit}
-        className={`task-form ${className}`}
+        className={`task-form bg-white p-6 rounded-lg shadow-md ${className}`}
         noValidate
       >
         {/* Title Field */}
@@ -196,22 +196,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         </div>
 
         {/* Form Actions */}
-        <div className='form-actions'>
+        <div className='form-actions mt-6'>
           <button
             type='submit'
-            className='submit-button'
+            className='w-full bg-blue-500 text-white py-3 rounded-lg font-semibold disabled:bg-blue-300'
             disabled={!isValid || isSubmitting}
             aria-describedby='submit-help'
           >
             {isSubmitting ? '保存中...' : '保存'}
-          </button>
-          <button
-            type='button'
-            className='cancel-button'
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          >
-            取消
           </button>
         </div>
 
