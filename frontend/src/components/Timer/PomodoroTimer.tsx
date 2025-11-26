@@ -35,16 +35,23 @@ const styles = `
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 22px;
     color: #888;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s;
   }
 
   .settings-btn:hover {
     background-color: #f5f5f5;
+    color: #333;
+  }
+
+  .settings-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
   }
 
   .timer-circle {
@@ -408,8 +415,24 @@ export const PomodoroTimer: React.FC = () => {
         {/* Header */}
         <div className='header'>
           <div className='title'>专注时钟</div>
-          <button className='settings-btn' onClick={handleSettingsClick}>
-            ⚙️
+          <button className='settings-btn' onClick={handleSettingsClick} aria-label='设置'>
+            <svg
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              xmlns='http://www.w3.org/2000/svg'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"
+              />
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06.06a1.65 1.65 0 0 0-1.82.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33l-.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82-.33l-.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82Z'
+              />
+            </svg>
           </button>
         </div>
 
